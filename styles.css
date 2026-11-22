@@ -228,3 +228,68 @@ body.dark #app-body::-webkit-scrollbar, #app-body::-webkit-scrollbar { width: 0;
   #phone { width: 100vw; height: 100vh; border-radius: 0; box-shadow: none; }
   .lock-time { font-size: 70px; }
 }
+
+/* ---------- Pełny ekran ---------- */
+#phone:fullscreen { width: 100vw; height: 100vh; border-radius: 0; box-shadow: none; }
+#phone:fullscreen #app-view { border-radius: 0; }
+@media (display-mode: fullscreen) {
+  #phone { border-radius: 0; box-shadow: none; }
+}
+
+/* ---------- App Store ---------- */
+.store-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; border-radius: 16px; background: rgba(120,120,128,.12); margin-bottom: 10px;
+}
+.store-info { flex: 1; line-height: 1.35; }
+.store-info b { display: block; }
+.store-info small { opacity: .55; font-size: 12px; }
+.store-btn {
+  border: none; border-radius: 20px; padding: 8px 16px; font-weight: 700; font-size: 13px;
+  background: #0a84ff; color: #fff; cursor: pointer;
+}
+.store-btn.remove { background: rgba(120,120,128,.25); color: inherit; }
+.store-head-info { text-align: center; padding: 4px 0 14px; opacity: .55; font-size: 13px; }
+
+/* ---------- Kalendarz ---------- */
+.cal-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px 14px; }
+.cal-nav { border: none; background: none; color: #0a84ff; font-size: 26px; cursor: pointer; padding: 0 10px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+.cal-dow { font-weight: 700; opacity: .45; font-size: 12px; padding: 4px 0; }
+.cal-day {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 15px; border-radius: 50%;
+}
+.cal-day.today { background: #ff453a; color: #fff; font-weight: 700; }
+
+/* ---------- Czat ---------- */
+#chat-log { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; }
+.chat-msg { max-width: 78%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4; }
+.chat-msg.bot { background: rgba(120,120,128,.2); border-bottom-left-radius: 6px; align-self: flex-start; }
+.chat-msg.me { background: #0a84ff; color: #fff; border-bottom-right-radius: 6px; align-self: flex-end; }
+.chat-bar { display: flex; gap: 8px; padding-top: 8px; }
+.chat-bar input { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid rgba(120,120,128,.35); background: rgba(120,120,128,.1); color: inherit; font-size: 15px; font-family: inherit; }
+
+/* ---------- Mapy ---------- */
+.map-area {
+  position: relative; width: 100%; aspect-ratio: 4/5; border-radius: 20px; overflow: hidden; cursor: crosshair;
+  background:
+    linear-gradient(90deg, transparent 47%, #d8d2c4 47%, transparent 50%),
+    linear-gradient(0deg, transparent 60%, #b3d8f5 60%, transparent 63%),
+    linear-gradient(135deg, #d5e8d4 0%, #e8f0e0 40%, #d0e4cf 100%);
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+}
+.map-area::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 47%, rgba(0,0,0,.06) 47%, rgba(0,0,0,.06) 53%, transparent 53%);
+}
+.map-pin { position: absolute; transform: translate(-50%, -100%); font-size: 26px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.3)); cursor: pointer; }
+
+/* ---------- Gra ---------- */
+.game-target {
+  position: absolute; transform: translate(-50%, -50%);
+  font-size: 34px; cursor: pointer;
+  filter: drop-shadow(0 3px 5px rgba(0,0,0,.3));
+  animation: target-pop .3s backwards;
+}
+@keyframes target-pop { from { transform: translate(-50%,-50%) scale(0); } }
