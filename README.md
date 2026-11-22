@@ -8,12 +8,18 @@ Klon interfejsu iOS zbudowany w czystym **HTML + CSS + JavaScript** — bez fram
 - 🏠 **Ekran główny** — siatka ikon aplikacji, dock, wybór tapety (zapisywana w localStorage)
 - 🎚 **Centrum sterowania** — Wi‑Fi, Bluetooth, tryb „Nie przeszkadzać", latarka, suwaki jasności i głośności (otwierane kliknięciem paska statusu)
 - 🧮 **Kalkulator** — pełne działanie (+, −, ×, ÷, %, ±)
+- 🎨 **Szkicownik** — rysowanie palcem/myszką (canvas, kolory, rozmiar pędzla)
+- ⏲️ **Minutnik** — odliczanie 1/3/5/10 min z dźwiękiem
 - 📝 **Notatki** — dodawanie/usuwanie, zapis w localStorage
 - ⏰ **Zegar** — tarcza analogowa, godzina cyfrowa, stoper
 - ☀️ **Pogoda** — bieżąca prognoza 7‑dniowa (dane demo)
 - 🌸 **Zdjęcia** — siatka miniaturek z animacją
 - 🎵 **Muzyka** — odtwarzacz z listą utworów
 - ⚙️ **Ustawienia** — tryb ciemny, przełączniki, tapety
+- 🛍️ **App Store** — katalog aplikacji do pobrania (instalacja/usuwanie zapamiętywane):
+  - 📅 Kalendarz · 💬 Czat z botem · 🗺️ Mapy z pinezkami · 📷 Kamera (podgląd na żywo)
+  - 🎮 Refleks · 🎲 Kostka · 🐍 Snake · 🧠 Memoria (gra pamięciowa)
+  - 🎹 Piano (WebAudio) · ✅ Zadania (localStorage) · 🍅 Pomodoro
 
 ## 🚀 Uruchomienie
 

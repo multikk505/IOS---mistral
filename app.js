@@ -59,6 +59,8 @@ const APPS = [
   { id: "photos",   name: "Zdjęcia",     glyph: "🌸", bg: "linear-gradient(180deg,#f9f9f9,#e8e8ec)" },
   { id: "music",    name: "Muzyka",      glyph: "🎵", bg: "linear-gradient(180deg,#fc3c44,#c71d25)" },
   { id: "appstore", name: "App Store",   glyph: "🛍️", bg: "linear-gradient(180deg,#2ab5ff,#0060df)" },
+  { id: "paint",     name: "Szkicownik",  glyph: "🎨", bg: "linear-gradient(180deg,#ff375f,#c1103c)" },
+  { id: "minutnik",  name: "Minutnik",    glyph: "⏲️", bg: "linear-gradient(180deg,#64d2ff,#0071e3)" },
   { id: "about",    name: "iOS Web",     glyph: "", bg: "linear-gradient(180deg,#2c2c2e,#000)" },
 ];
 
@@ -69,6 +71,11 @@ const CATALOG = [
   { id: "kamera",    name: "Kamera",     desc: "Podgląd z kamery (wymaga zgody)", glyph: "📷", bg: "linear-gradient(180deg,#8e8e93,#48484a)", label: "#fff" },
   { id: "gra",       name: "Refleks",    desc: "Mini\u00a0gra na szybkość reakcji", glyph: "🎮", bg: "linear-gradient(180deg,#bf5af2,#8944ab)", label: "#fff" },
   { id: "kubek",     name: "Kostka",     desc: "Losowanie kością i monetą", glyph: "🎲", bg: "linear-gradient(180deg,#ff9f0a,#c76c00)", label: "#fff" },
+  { id: "snake",     name: "Snake",      desc: "Klasyczny wąż — zbieraj punkty", glyph: "🐍", bg: "linear-gradient(180deg,#30d158,#1a6e33)", label: "#fff" },
+  { id: "memoria",   name: "Memoria",    desc: "Gra pamięciowa — znajdź pary", glyph: "🧠", bg: "linear-gradient(180deg,#bf5af2,#d63faf)", label: "#fff" },
+  { id: "piano",     name: "Piano",      desc: "Graj na klawiaturze dźwiękowej", glyph: "🎹", bg: "linear-gradient(180deg,#f2f2f7,#d1d1d6)", label: "#000" },
+  { id: "zadania",   name: "Zadania",    desc: "Lista zadań do odhaczenia", glyph: "✅", bg: "linear-gradient(180deg,#0a84ff,#0053b3)", label: "#fff" },
+  { id: "pomodoro",  name: "Pomodoro",   desc: "25 min pracy / 5 min przerwy", glyph: "🍅", bg: "linear-gradient(180deg,#ff6961,#d13830)", label: "#fff" },
 ];
 
 function allApps() {
@@ -550,3 +557,290 @@ document.querySelectorAll(".cc-wide[data-k=fs]").forEach((b) => b.addEventListen
 document.addEventListener("dblclick", (e) => {
   if (e.target.closest("#app-view")) toggleFS();
 });
+
+/* ================= Szkicownik ================= */
+RENDERERS.paint = (el) => {
+  el.innerHTML = `
+    <canvas id="cv" class="paint-canvas" width="360" height="480"></canvas>
+    <div class="paint-bar">
+      ${["#000000","#ffffff","#ff453a","#ff9f0a","#ffd60a","#30d158","#0a84ff","#bf5af2"].map((c, i) => `<button class="color-chip ${i === 0 ? "sel" : ""}" data-c="${c}" style="background:${c}"></button>`).join("")}
+      <input type="range" id="brush" min="2" max="30" value="6" style="width:90px">
+      <button class="store-btn remove" id="cv-clear">Wyczyść</button>
+    </div>`;
+  const cv = el.querySelector("#cv"), ctx = cv.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  let color = "#000000", down = false, last = null;
+  const pos = (e) => {
+    const r = cv.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: (t.clientX - r.left) * cv.width / r.width, y: (t.clientY - r.top) * cv.height / r.height };
+  };
+  const line = (p) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = el.querySelector("#brush").value;
+    ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    last = p;
+  };
+  const start = (e) => { down = true; last = pos(e); };
+  const move = (e) => { if (down) { e.preventDefault?.(); line(pos(e)); } };
+  cv.addEventListener("mousedown", start); cv.addEventListener("mousemove", move);
+  cv.addEventListener("touchstart", (e) => { start(e); }, { passive: true });
+  cv.addEventListener("touchmove", move, { passive: false });
+  document.addEventListener("mouseup", () => { down = false; });
+  document.addEventListener("touchend", () => { down = false; });
+  el.querySelectorAll(".color-chip").forEach((c) => c.addEventListener("click", () => {
+    el.querySelectorAll(".color-chip").forEach((x) => x.classList.remove("sel"));
+    c.classList.add("sel"); color = c.dataset.c;
+  }));
+  el.querySelector("#cv-clear").addEventListener("click", () => { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height); });
+};
+
+/* ================= Minutnik ================= */
+RENDERERS.minutnik = (el) => {
+  el.innerHTML = `<div class="music-card" style="padding-top:30px"><div class="timer-display" id="mn-disp">05:00</div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:18px">
+      ${[1, 3, 5, 10].map((m) => `<button class="store-btn mn-preset" data-m="${m}">${m} min</button>`).join("")}
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn-primary" id="mn-start" style="width:auto;padding:12px 32px">Start</button>
+      <button class="btn-primary" id="mn-reset" style="width:auto;padding:12px 32px;background:rgba(120,120,128,.3);color:inherit">Reset</button>
+    </div></div>`;
+  let total = 300, left = total, int = null;
+  const disp = el.querySelector("#mn-disp");
+  const upd = () => { disp.textContent = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`; };
+  const beep = () => {
+    try {
+      const a = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 400, 800].forEach((d) => {
+        const o = a.createOscillator(), g = a.createGain();
+        o.connect(g); g.connect(a.destination); o.frequency.value = 880;
+        g.gain.setValueAtTime(.3, a.currentTime + d / 1000);
+        g.gain.exponentialRampToValueAtTime(.001, a.currentTime + d / 1000 + .35);
+        o.start(a.currentTime + d / 1000); o.stop(a.currentTime + d / 1000 + .4);
+      });
+    } catch (e) {}
+  };
+  const stop = (txt) => { clearInterval(int); int = null; el.querySelector("#mn-start").textContent = txt || "Start"; };
+  el.querySelectorAll(".mn-preset").forEach((b) => b.addEventListener("click", () => {
+    stop(); total = Number(b.dataset.m) * 60; left = total; upd();
+  }));
+  el.querySelector("#mn-start").addEventListener("click", () => {
+    if (int) { stop("Wznów"); return; }
+    if (left <= 0) left = total;
+    int = setInterval(() => {
+      left--; upd();
+      if (left <= 0) { stop(); beep(); disp.textContent = "⏰ KONIEC!"; }
+    }, 1000);
+    el.querySelector("#mn-start").textContent = "Pauza";
+  });
+  el.querySelector("#mn-reset").addEventListener("click", () => { stop(); left = total; upd(); });
+  upd();
+};
+
+/* ================= Snake ================= */
+RENDERERS.snake = (el) => {
+  const N = 17, S = 22;
+  el.innerHTML = `<div style="text-align:center;padding-top:8px"><div style="font-weight:700;font-size:20px;margin-bottom:8px" id="sn-score">0</div><canvas id="sn-cv" width="${N * S}" height="${N * S}" class="sn-canvas"></canvas>
+    <div class="dpad">
+      <button data-d="u" style="grid-area:u">▲</button><button data-d="l" style="grid-area:l">◀</button><button data-d="r" style="grid-area:r">▶</button><button data-d="d" style="grid-area:d">▼</button>
+    </div></div>`;
+  const cv = el.querySelector("#sn-cv"), ctx = cv.getContext("2d");
+  const scoreEl = el.querySelector("#sn-score");
+  let snake, dir, food, score, int = null, dead = true;
+  const spawnFood = () => {
+    do { food = { x: Math.floor(Math.random() * N), y: Math.floor(Math.random() * N) }; }
+    while (snake.some((s) => s.x === food.x && s.y === food.y));
+  };
+  const draw = () => {
+    ctx.fillStyle = "#1c1c1e"; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = "#ff453a";
+    ctx.beginPath(); ctx.arc(food.x * S + S / 2, food.y * S + S / 2, S / 2 - 3, 0, 7); ctx.fill();
+    snake.forEach((s, i) => {
+      ctx.fillStyle = i === 0 ? "#30d158" : `hsl(130, 60%, ${55 - i * 1.2}%)`;
+      ctx.fillRect(s.x * S + 1, s.y * S + 1, S - 2, S - 2);
+    });
+  };
+  const over = () => {
+    dead = true; clearInterval(int); int = null;
+    ctx.fillStyle = "rgba(0,0,0,.65)"; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 22px sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("Koniec gry!", cv.width / 2, cv.height / 2 - 10);
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Kliknij planszę, aby zagrać ponownie", cv.width / 2, cv.height / 2 + 18);
+  };
+  const step = () => {
+    const h = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+    if (h.x < 0 || h.y < 0 || h.x >= N || h.y >= N || snake.some((s) => s.x === h.x && s.y === h.y)) return over();
+    snake.unshift(h);
+    if (h.x === food.x && h.y === food.y) { score += 10; scoreEl.textContent = score; spawnFood(); }
+    else snake.pop();
+    draw();
+  };
+  const start = () => {
+    snake = [{ x: 8, y: 8 }, { x: 7, y: 8 }, { x: 6, y: 8 }];
+    dir = { x: 1, y: 0 }; score = 0; scoreEl.textContent = "0"; dead = false;
+    spawnFood(); draw();
+    clearInterval(int); int = setInterval(step, 140);
+  };
+  const turn = (d) => {
+    if (dead) { start(); return; }
+    const nd = { u: { x: 0, y: -1 }, d: { x: 0, y: 1 }, l: { x: -1, y: 0 }, r: { x: 1, y: 0 } }[d];
+    if (nd.x !== -dir.x || nd.y !== -dir.y) dir = nd;
+  };
+  el.querySelectorAll(".dpad button").forEach((b) => b.addEventListener("click", () => turn(b.dataset.d)));
+  document.addEventListener("keydown", function h(e) {
+    if (!dead && $("#app-view").classList.contains("open") && $("#app-title").textContent === "Snake") {
+      if (e.key === "ArrowUp") { turn("u"); e.preventDefault(); }
+      if (e.key === "ArrowDown") { turn("d"); e.preventDefault(); }
+      if (e.key === "ArrowLeft") { turn("l"); e.preventDefault(); }
+      if (e.key === "ArrowRight") { turn("r"); e.preventDefault(); }
+    }
+  });
+  cv.addEventListener("click", () => { if (dead) start(); });
+  start();
+};
+
+/* ================= Memoria ================= */
+RENDERERS.memoria = (el) => {
+  const EMO = ["🍎","🐝","🌈","🚀","🐙","🌵","🍄","🐬"];
+  el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><b style="font-size:18px">Znajdź pary!</b><span id="mm-moves" style="opacity:.6;font-size:14px">Ruchy: 0</span></div><div class="mem-grid" id="mm-grid"></div>`;
+  const grid = el.querySelector("#mm-grid"), movesEl = el.querySelector("#mm-moves");
+  let deck = [...EMO, ...EMO].sort(() => Math.random() - .5).map((e) => ({ e, open: false, done: false }));
+  let open = [], moves = 0, lock = false;
+  const rend = () => {
+    grid.innerHTML = "";
+    deck.forEach((c, i) => {
+      const d = document.createElement("button");
+      d.className = "mem-card " + (c.done ? "done" : c.open ? "open" : "");
+      d.textContent = c.open || c.done ? c.e : "?";
+      d.addEventListener("click", () => {
+        if (lock || c.open || c.done) return;
+        c.open = true; open.push(i);
+        if (open.length === 2) {
+          moves++; movesEl.textContent = `Ruchy: ${moves}`;
+          const [a, b] = open;
+          if (deck[a].e === deck[b].e) {
+            deck[a].done = deck[b].done = true; open = []; rend();
+            if (deck.every((x) => x.done)) grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:30px;font-size:22px;font-weight:700">🎉 Wygrałeś w ${moves} ruchach!</div>`;
+          } else {
+            lock = true; rend();
+            setTimeout(() => { deck[a].open = deck[b].open = false; open = []; lock = false; rend(); }, 700);
+          }
+        } else rend();
+      });
+      grid.appendChild(d);
+    });
+  };
+  rend();
+};
+
+/* ================= Piano ================= */
+RENDERERS.piano = (el) => {
+  const KEYS = [
+    { n: "C", f: 261.63 }, { n: "C♯", f: 277.18, b: 1 }, { n: "D", f: 293.66 }, { n: "D♯", f: 311.13, b: 1 }, { n: "E", f: 329.63 },
+    { n: "F", f: 349.23 }, { n: "F♯", f: 369.99, b: 1 }, { n: "G", f: 392.00 }, { n: "G♯", f: 415.30, b: 1 }, { n: "A", f: 440.00 }, { n: "A♯", f: 466.16, b: 1 }, { n: "B", f: 493.88 },
+    { n: "C₂", f: 523.25 },
+  ];
+  el.innerHTML = `<p style="text-align:center;opacity:.6;margin-bottom:14px;font-size:13px">Kliknij klawisze lub użyj klawiatury A S D F G H J K L</p><div class="piano" id="pn"></div>`;
+  const pn = el.querySelector("#pn");
+  let ac = null;
+  const play = (f) => {
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = "triangle"; o.frequency.value = f;
+      o.connect(g); g.connect(ac.destination);
+      g.gain.setValueAtTime(.35, ac.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001, ac.currentTime + .9);
+      o.start(); o.stop(ac.currentTime + 1);
+    } catch (e) {}
+  };
+  const whiteIdx = [];
+  KEYS.forEach((k, i) => {
+    const b = document.createElement("button");
+    b.className = "pn-key" + (k.b ? " black" : "");
+    b.textContent = k.n;
+    b.addEventListener("click", () => { play(k.f); flash(b); });
+    pn.appendChild(b);
+    if (!k.b) whiteIdx.push({ k, i });
+  });
+  const flash = (b) => { b.classList.add("active"); setTimeout(() => b.classList.remove("active"), 150); };
+  const map = "asdfghjkl";
+  document.addEventListener("keydown", function h(e) {
+    if (!$("#app-view").classList.contains("open") || $("#app-title").textContent !== "Piano") return;
+    const idx = map.indexOf(e.key.toLowerCase());
+    if (idx >= 0) { play(whiteIdx[Math.min(idx, whiteIdx.length - 1)].k.f); flash(pn.children[whiteIdx[Math.min(idx, whiteIdx.length - 1)].i]); }
+  });
+};
+
+/* ================= Zadania ================= */
+RENDERERS.zadania = (el) => {
+  let tasks = JSON.parse(localStorage.getItem("p-ios-todo") || '["Dodać własne zadanie 👌"]');
+  el.innerHTML = `
+    <div class="chat-bar" style="padding-top:0"><input type="text" id="td-in" placeholder="Co masz zrobić?"><button class="btn-primary" id="td-add" style="width:auto;padding:10px 16px">➕</button></div>
+    <div id="td-list" style="margin-top:14px"></div>`;
+  const list = el.querySelector("#td-list");
+  const save = () => localStorage.setItem("p-ios-todo", JSON.stringify(tasks));
+  const rend = () => {
+    list.innerHTML = "";
+    tasks.forEach((t, i) => {
+      const d = document.createElement("div");
+      d.className = "todo-item" + (t.done ? " done" : "");
+      d.innerHTML = `<button class="todo-check">${t.done ? "✓" : ""}</button><span style="flex:1">${t.txt.replace(/</g, "&lt;")}</span><button class="note-del">🗑</button>`;
+      d.querySelector(".todo-check").addEventListener("click", () => { t.done = !t.done; save(); rend(); });
+      d.querySelector(".note-del").addEventListener("click", () => { tasks.splice(i, 1); save(); rend(); });
+      list.appendChild(d);
+    });
+  };
+  const add = () => {
+    const inp = el.querySelector("#td-in"), v = inp.value.trim();
+    if (v) { tasks.unshift({ txt: v, done: false }); inp.value = ""; save(); rend(); }
+  };
+  el.querySelector("#td-add").addEventListener("click", add);
+  el.querySelector("#td-in").addEventListener("keydown", (e) => { if (e.key === "Enter") add(); });
+  rend();
+};
+
+/* ================= Pomodoro ================= */
+RENDERERS.pomodoro = (el) => {
+  el.innerHTML = `<div class="music-card" style="padding-top:26px"><div id="pm-phase" class="store-info" style="font-size:15px;opacity:.6;display:block;margin-bottom:6px">🍅 Czas pracy</div><div class="timer-display" id="pm-disp">25:00</div><p style="opacity:.55;font-size:13px;margin-bottom:18px">25 min pracy → 5 min przerwy</p>
+  <div style="display:flex;gap:10px;justify-content:center">
+    <button class="btn-primary" id="pm-start" style="width:auto;padding:12px 30px">Start</button>
+    <button class="btn-primary" id="pm-reset" style="width:auto;padding:12px 30px;background:rgba(120,120,128,.3);color:inherit">Reset</button>
+  </div><div id="pm-count" style="margin-top:16px;opacity:.6;font-size:14px">Dokończone sesje: 0</div></div>`;
+  const WORK = 25 * 60, BREAK = 5 * 60;
+  let mode = "work", left = WORK, int = null, sessions = Number(localStorage.getItem("p-ios-pomo") || 0);
+  const disp = el.querySelector("#pm-disp"), phase = el.querySelector("#pm-phase"), cnt = el.querySelector("#pm-count");
+  cnt.textContent = `Dokończone sesje: ${sessions}`;
+  const upd = () => { disp.textContent = `${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}`; };
+  const beeps = () => {
+    try {
+      const a = new (window.AudioContext || window.webkitAudioContext)();
+      const o = a.createOscillator(), g = a.createGain();
+      o.connect(g); g.connect(a.destination); o.frequency.value = 660;
+      g.gain.setValueAtTime(.3, a.currentTime); g.gain.exponentialRampToValueAtTime(.001, a.currentTime + .6);
+      o.start(); o.stop(a.currentTime + .7);
+    } catch (e) {}
+  };
+  const setMode = (m) => {
+    mode = m; left = m === "work" ? WORK : BREAK;
+    phase.textContent = m === "work" ? "🍅 Czas pracy" : "☕️ Przerwa";
+    upd();
+  };
+  const stop = (t) => { clearInterval(int); int = null; el.querySelector("#pm-start").textContent = t || "Start"; };
+  el.querySelector("#pm-start").addEventListener("click", () => {
+    if (int) { stop("Wznów"); return; }
+    int = setInterval(() => {
+      left--; upd();
+      if (left <= 0) {
+        beeps();
+        if (mode === "work") { sessions++; localStorage.setItem("p-ios-pomo", sessions); cnt.textContent = `Dokończone sesje: ${sessions}`; setMode("break"); }
+        else setMode("work");
+      }
+    }, 1000);
+    el.querySelector("#pm-start").textContent = "Pauza";
+  });
+  el.querySelector("#pm-reset").addEventListener("click", () => { stop(); setMode(mode); });
+  upd();
+};
