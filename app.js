@@ -118,6 +118,16 @@ function renderHome() {
   }
   dots.style.display = pageCount > 1 ? "flex" : "none";
   pages.scrollLeft = 0;
+  const dock = $("#dock");
+  dock.innerHTML = "";
+  DOCK.forEach((d) => {
+    const el = document.createElement("div");
+    el.className = "dock-icon";
+    el.style.background = d.bg;
+    el.textContent = d.glyph;
+    el.addEventListener("click", () => openApp(d.id));
+    dock.appendChild(el);
+  });
 }
 
 $("#pages").addEventListener("scroll", () => {
@@ -150,6 +160,8 @@ window.addEventListener("pointerup", () => {
   }
   swipe = null;
 });
+
+renderHome();
 
 /* ---------- Otwieranie aplikacji ---------- */
 const RENDERERS = {};
@@ -915,32 +927,61 @@ RENDERERS.youtube = (el) => {
   });
 };
 
-/* ================= ChatGPT (własny klucz API) ================= */
+/* ================= ChatGPT (multi-provider + demo) ================= */
+const AI_PROVIDERS = {
+  openai:    { label: "OpenAI",    url: "https://api.openai.com/v1/chat/completions",             model: "gpt-4o-mini",           shape: "openai" },
+  mistral:   { label: "Mistral",   url: "https://api.mistral.ai/v1/chat/completions",             model: "mistral-small-latest",  shape: "openai" },
+  groq:      { label: "Groq",      url: "https://api.groq.com/openai/v1/chat/completions",        model: "llama-3.3-70b-versatile", shape: "openai" },
+  anthropic: { label: "Anthropic", url: "https://api.anthropic.com/v1/messages",                  model: "claude-3-5-haiku-latest", shape: "anthropic" },
+  demo:      { label: "Demo (offline, bez klucza)", shape: "demo" },
+};
+function aiCfg() {
+  return {
+    provider: localStorage.getItem("p-ios-aiprovider") || "openai",
+    key: localStorage.getItem("p-ios-aikey") || "",
+    model: localStorage.getItem("p-ios-aimodel") || "",
+  };
+}
 RENDERERS.gpt = (el) => ({
   init: function () {
-    const key = localStorage.getItem("p-ios-aikey");
-    if (key) this.chat(key);
+    const { key, provider } = aiCfg();
+    if (provider === "demo" || key) this.chat();
     else this.keySetup();
   },
   keySetup: function () {
-    el.innerHTML = `<div style="text-align:center;padding-top:24px"><span style="font-size:64px">🤖</span><h3 style="margin:12px 0 6px">ChatGPT</h3><p style="opacity:.65;font-size:14px;line-height:1.6;margin-bottom:18px">Aby rozmawiać, podaj własny klucz API OpenAI.<br>Pobierz go na <b>platform.openai.com/api-keys</b>.<br><small style="opacity:.7">Klucz zapisuje się tylko w Twojej przeglądarce (localStorage) i nie opuszcza tego urządzenia.</small></p>
-      <input type="password" class="note-input" id="gpt-key" placeholder="sk-…" autocomplete="off">
-      <input type="text" class="note-input" id="gpt-model" placeholder="Model (np. gpt-4o-mini)" value="gpt-4o-mini">
+    const { provider } = aiCfg();
+    el.innerHTML = `<div style="text-align:center;padding-top:18px"><span style="font-size:60px">🤖</span><h3 style="margin:10px 0 6px">ChatGPT</h3><p style="opacity:.65;font-size:14px;line-height:1.6;margin-bottom:14px">Wybierz dostawcę i podaj klucz API.<br><small style="opacity:.7">Klucz zapisuje się tylko w Twojej przeglądarce i nie opuszcza urządzenia.</small></p>
+      <div class="set-group"><div class="set-row"><span>Dostawca</span>
+        <select id="gpt-provider" class="note-input" style="width:auto;margin:0;background:rgba(120,120,128,.1)">
+          ${Object.entries(AI_PROVIDERS).map(([k, v]) => `<option value="${k}" ${k === provider ? "selected" : ""}>${v.label}</option>`).join("")}
+        </select></div></div>
+      <input type="password" class="note-input" id="gpt-key" placeholder="Klucz API (demo — bez klucza)">
+      <input type="text" class="note-input" id="gpt-model" placeholder="Model (opcjonalnie — zostaw domyślny)">
       <button class="btn-primary" id="gpt-save">💾 Zapisz i zacznij czat</button></div>`;
+    const provSel = el.querySelector("#gpt-provider");
+    const keyInp = el.querySelector("#gpt-key");
+    const keyRow = keyInp;
+    const syncNeed = () => { keyInp.placeholder = provSel.value === "demo" ? "Niewymagany dla demo" : "Klucz API…"; };
+    provSel.addEventListener("change", syncNeed); syncNeed();
     el.querySelector("#gpt-save").addEventListener("click", () => {
-      const k = el.querySelector("#gpt-key").value.trim();
-      if (k.length < 10) return;
-      localStorage.setItem("p-ios-aikey", k);
-      localStorage.setItem("p-ios-aimodel", el.querySelector("#gpt-model").value.trim() || "gpt-4o-mini");
-      this.chat(k);
+      const k = keyInp.value.trim();
+      const pv = provSel.value;
+      if (pv !== "demo" && k.length < 10) return;
+      localStorage.setItem("p-ios-aiprovider", pv);
+      if (pv !== "demo") localStorage.setItem("p-ios-aikey", k);
+      const m = el.querySelector("#gpt-model").value.trim();
+      if (m) localStorage.setItem("p-ios-aimodel", m);
+      this.chat();
     });
   },
-  chat: function (key) {
-    const model = localStorage.getItem("p-ios-aimodel") || "gpt-4o-mini";
+  chat: function () {
+    const { provider, key, model } = aiCfg();
+    const prov = AI_PROVIDERS[provider] || AI_PROVIDERS.openai;
+    const modelName = model || prov.model || "demo";
     el.innerHTML = `
       <div id="chat-log" class="chat-log" style="flex:1;min-height:0;overflow-y:auto"></div>
       <div class="chat-bar"><input type="text" id="chat-in" placeholder="Napisz wiadomość…"><button class="btn-primary" id="chat-send" style="width:auto;padding:10px 16px">➤</button></div>
-      <div style="text-align:center;padding-top:8px"><small style="opacity:.4;cursor:pointer" id="gpt-reset">model: ${model} · zmień klucz</small></div>`;
+      <div style="text-align:center;padding-top:8px"><small style="opacity:.4;cursor:pointer" id="gpt-reset">${prov.label} · ${modelName} · ustawienia</small></div>`;
     const log = el.querySelector("#chat-log");
     const add = (t, me, isHtml) => {
       const d = document.createElement("div");
@@ -950,8 +991,39 @@ RENDERERS.gpt = (el) => ({
       log.scrollTop = log.scrollHeight;
       return d;
     };
-    add("Cześć! 👋 Jak mogę Ci dzisiaj pomóc?", false);
+    add(provider === "demo"
+      ? "Cześć! 👋 Jestem botem DEMO (offline). Aby rozmawiać z prawdziwym AI, kliknij „\u200bustawienia\u200b” na dole i podaj klucz."
+      : "Cześć! 👋 Jak mogę Ci dzisiaj pomóc?", false);
     const history = [{ role: "system", content: "Odpowiadaj krótko i po polsku, jeśli użytkownik pisze po polsku." }];
+    const DEMO_REPLIES = [
+      "Interesujące pytanie! 🤔 Niestety jestem tylko demo — podaj klucz API w ustawieniach, aby rozmawiać z prawdziwym AI.",
+      "Demo-offline jest tu 😄 Klucz API odblokowuje pełną moc!",
+      "Sprawdź App Store — jest tam więcej aplikacji! 🛍️",
+      "Dobrze, że pytasz. Pogoda na zewnątrz wydaje się ładna ☀️",
+    ];
+    const callDemo = () => new Promise((res) => setTimeout(() => res(DEMO_REPLIES[Math.floor(Math.random() * DEMO_REPLIES.length)]), 500));
+    const callApi = async (v) => {
+      const headers = { "Content-Type": "application/json" };
+      let body;
+      if (prov.shape === "anthropic") {
+        headers["x-api-key"] = key;
+        headers["anthropic-version"] = "2023-06-01";
+        headers["anthropic-dangerous-direct-browser-access"] = "true";
+        body = { model: modelName, max_tokens: 700, system: history[0].content, messages: history.slice(1).map((m) => ({ role: m.role === "system" ? "user" : m.role, content: m.content })) };
+      } else {
+        headers["Authorization"] = "Bearer " + key;
+        body = { model: modelName, messages: [...history], max_tokens: 700 };
+      }
+      const r = await fetch(prov.url, { method: "POST", headers, body: JSON.stringify(body) });
+      const data = await r.json();
+      if (data.error || data.type === "error") {
+        const msg = (data.error && (data.error.message ?? "")) || "";
+        if ((data.error?.code === "invalid_api_key") || data.error?.authentication_error || /invalid|unauthor/i.test(msg))
+          throw new Error("KEY");
+        throw new Error(msg || "Błąd API");
+      }
+      return prov.shape === "anthropic" ? data.content?.[0]?.text : data.choices?.[0]?.message?.content;
+    };
     const send = async () => {
       const inp = el.querySelector("#chat-in");
       const v = inp.value.trim();
@@ -961,29 +1033,20 @@ RENDERERS.gpt = (el) => ({
       if (history.length > 12) history.splice(1, history.length - 12);
       const wait = add("…", false);
       try {
-        const r = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
-          body: JSON.stringify({ model, messages: history, max_tokens: 700 }),
-        });
-        const data = await r.json();
-        if (data.error) {
-          wait.innerHTML = data.error.code === "invalid_api_key"
-            ? "⚠️ Nieprawidłowy klucz API. <a href='#' id='gpt-change' style='color:#0a84ff'>Podaj inny klucz</a>."
-            : "⚠️ Błąd API: " + data.error.message;
-          const ch = wait.querySelector("#gpt-change");
-          if (ch) ch.addEventListener("click", (e) => { e.preventDefault(); localStorage.removeItem("p-ios-aikey"); this.keySetup(); });
-        } else {
-          const txt = data.choices?.[0]?.message?.content || "…";
-          add(txt.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>"), false, true);
-          history.push({ role: "assistant", content: txt });
-        }
+        const txt = provider === "demo" ? await callDemo() : await callApi(v);
+        add(String(txt).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>"), false, true);
+        history.push({ role: "assistant", content: String(txt) });
       } catch (e) {
-        wait.textContent = "⚠️ Brak połączenia z API (sieć / CORS / blokada rozszerzenia).";
+        if (e.message === "KEY") {
+          wait.innerHTML = "⚠️ Nieprawidłowy klucz API. <a href='#' id='gpt-change' style='color:#0a84ff'>Zmień klucz / dostawcę</a>.";
+          wait.querySelector("#gpt-change").addEventListener("click", (ev) => { ev.preventDefault(); this.keySetup(); });
+        } else {
+          wait.textContent = "⚠️ " + (e.message === "Failed to fetch" ? "Brak połączenia z API (sieć / CORS)." : e.message);
+        }
       }
     };
     el.querySelector("#chat-send").addEventListener("click", send);
     el.querySelector("#chat-in").addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
-    el.querySelector("#gpt-reset").addEventListener("click", () => { localStorage.removeItem("p-ios-aikey"); this.keySetup(); });
+    el.querySelector("#gpt-reset").addEventListener("click", () => this.keySetup());
   },
 }).init();
