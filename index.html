@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>iOS Web — Symulator</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="phone">
+  <!-- Pasek statusu -->
+  <div id="status-bar">
+    <span id="sb-time">9:41</span>
+    <span class="sb-right">
+      <span class="sig"> ●●●●●</span>
+      <span>5G</span>
+      <span id="sb-batt">100%</span>
+      <span class="batt"><span class="batt-fill"></span></span>
+    </span>
+  </div>
+
+  <!-- Ekran blokady -->
+  <div id="lock-screen">
+    <div class="lock-date" id="lock-date">poniedziałek 1 stycznia</div>
+    <div class="lock-time" id="lock-time">9:41</div>
+    <div class="lock-widget">☀️ Słonecznie · 24°C</div>
+    <div class="lock-hint">↑ Przesuń lub kliknij, aby otworzyć</div>
+  </div>
+
+  <!-- Ekran główny -->
+  <div id="home-screen">
+    <div class="apps-grid" id="apps-grid"></div>
+    <div id="dock"></div>
+  </div>
+
+  <!-- Aplikacje -->
+  <div id="app-view">
+    <div class="app-header"><button class="home-btn" id="app-close">✕</button><span id="app-title"></span><span class="app-header-space"></span></div>
+    <div id="app-body"></div>
+  </div>
+
+  <!-- Centrum sterowania -->
+  <div id="control-center">
+    <div class="cc-grid">
+      <div class="cc-toggles">
+        <button class="cc-btn" data-k="wifi">📶</button>
+        <button class="cc-btn" data-k="bt">🔵</button>
+        <button class="cc-btn" data-k="dnd">🌙</button>
+        <button class="cc-btn" data-k="rot">🔒</button>
+      </div>
+      <div class="cc-slider" id="cc-brightness"><label>☀️</label><input type="range" min="20" max="100" value="100"></div>
+      <div class="cc-slider" id="cc-volume"><label>🔊</label><input type="range" min="0" max="100" value="60"></div>
+    </div>
+    <div class="cc-buttons">
+      <button class="cc-wide" data-k="flash">🔦 Latarka</button>
+      <button class="cc-wide" data-k="calc">🧮 Kalkulator</button>
+    </div>
+  </div>
+
+  <!-- Pasek home -->
+  <div id="home-indicator"></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
