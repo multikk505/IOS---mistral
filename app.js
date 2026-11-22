@@ -827,7 +827,7 @@ RENDERERS.piano = (el) => {
 
 /* ================= Zadania ================= */
 RENDERERS.zadania = (el) => {
-  let tasks = JSON.parse(localStorage.getItem("p-ios-todo") || '["Dodać własne zadanie 👌"]');
+  let tasks = (JSON.parse(localStorage.getItem("p-ios-todo") || "[]").map(function (t) { return typeof t === "string" ? { txt: t, done: false } : t; }));
   el.innerHTML = `
     <div class="chat-bar" style="padding-top:0"><input type="text" id="td-in" placeholder="Co masz zrobić?"><button class="btn-primary" id="td-add" style="width:auto;padding:10px 16px">➕</button></div>
     <div id="td-list" style="margin-top:14px"></div>`;

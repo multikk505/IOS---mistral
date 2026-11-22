@@ -16,10 +16,19 @@ Klon interfejsu iOS zbudowany w czystym **HTML + CSS + JavaScript** — bez fram
 - 🌸 **Zdjęcia** — siatka miniaturek z animacją
 - 🎵 **Muzyka** — odtwarzacz z listą utworów
 - ⚙️ **Ustawienia** — tryb ciemny, przełączniki, tapety
-- 🛍️ **App Store** — katalog aplikacji do pobrania (instalacja/usuwanie zapamiętywane):
-  - 📅 Kalendarz · 💬 Czat z botem · 🗺️ Mapy z pinezkami · 📷 Kamera (podgląd na żywo)
-  - 🎮 Refleks · 🎲 Kostka · 🐍 Snake · 🧠 Memoria (gra pamięciowa)
-  - 🎹 Piano (WebAudio) · ✅ Zadania (localStorage) · 🍅 Pomodoro
+- 🛍️ **App Store — ponad 100 aplikacji** do pobrania (instalacja/usuwanie zapamiętywane):
+  - **Gry:** 2048, Snake, Saper, Wisielec, Kółko i Krzyżyk, Memoria (10 motywów), Refleks, Kostka, Orzeł–Reszka
+  - **Quizy (15 tematów):** historia, geografia, kino, muzyka, sport, informatyka, biologia, kosmos, matematyka, angielski, tradycje PL, gry wideo, motoryzacja, zwierzęta, zagadki — z rekordami
+  - **Przeliczniki (10):** długość, masa, temperatura, czas, objętość, dane, energia, prędkość, kąty, waluta (demo)
+  - **Fiszki (10 talii):** angielski, hiszpański, niemiecki, francuski, stolice, flagi, IT, chemia, anatomia, idiomy
+  - **Listy (7):** zakupy, walizka, lektury, watchlista, lista marzeń, cele tygodnia, przepisy
+  - **Liczniki (7):** woda, kawa, kroki, treningi, „nie palę”, strony, nauka — z celami dziennymi
+  - **Generatory (6):** hasła, nicki, lotto, kolory HEX, „wybierz za mnie”, moneta
+  - **Encyklopedie (11):** pierwiastki, ciekawostki, przepisy, ćwiczenia, pierwsza pomoc, idiomy świata, przysłowia, święta PL, jednostki SI, znaki zodiaku, wartości odżywcze
+  - **Timery (4):** jajka na miękko/twardo, herbata, makaron al dente
+  - **Narzędzia:** Zegar Świat (8 miast), BMI, Napiwek, VAT, Oddech 4‑7‑8, Dziennik Nastroju
+  - 📅 Kalendarz · 💬 Czat z botem · 🗺️ Mapy z pinezkami · 📷 Kamera
+  - 🎹 Piano (WebAudio) · ✅ Zadania · 🍅 Pomodoro
 
 ## 🚀 Uruchomienie
 
