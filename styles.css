@@ -355,3 +355,27 @@ body.dark .timer-display { color: #fff; }
   font-weight: 800; font-size: 14px; cursor: pointer;
 }
 .todo-item.done .todo-check { border-color: #30d158; }
+
+/* ---------- Strony ekranu głównego ---------- */
+.pages {
+  flex: 1;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.pages::-webkit-scrollbar { height: 0; width: 0; }
+.page.apps-grid {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  align-content: start;
+  max-height: 100%;
+}
+.dots {
+  display: flex; gap: 7px; justify-content: center;
+  flex-shrink: 0; margin-bottom: 4px;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.35); cursor: pointer; transition: all .2s; }
+.dot.active { background: #fff; }

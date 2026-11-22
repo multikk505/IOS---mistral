@@ -58,6 +58,8 @@ const APPS = [
   { id: "weather",  name: "Pogoda",      glyph: "☀️", bg: "linear-gradient(180deg,#4a90d9,#23538f)" },
   { id: "photos",   name: "Zdjęcia",     glyph: "🌸", bg: "linear-gradient(180deg,#f9f9f9,#e8e8ec)" },
   { id: "music",    name: "Muzyka",      glyph: "🎵", bg: "linear-gradient(180deg,#fc3c44,#c71d25)" },
+  { id: "youtube",  name: "YouTube",     glyph: "▶️", bg: "linear-gradient(180deg,#ff0033,#b30000)" },
+  { id: "gpt",      name: "ChatGPT",     glyph: "🤖", bg: "linear-gradient(180deg,#10a37f,#0b704d)" },
   { id: "appstore", name: "App Store",   glyph: "🛍️", bg: "linear-gradient(180deg,#2ab5ff,#0060df)" },
   { id: "paint",     name: "Szkicownik",  glyph: "🎨", bg: "linear-gradient(180deg,#ff375f,#c1103c)" },
   { id: "minutnik",  name: "Minutnik",    glyph: "⏲️", bg: "linear-gradient(180deg,#64d2ff,#0071e3)" },
@@ -89,28 +91,65 @@ const DOCK = [
 ];
 
 function renderHome() {
-  const grid = $("#apps-grid");
-  grid.innerHTML = "";
-  allApps().forEach((a, i) => {
-    const b = document.createElement("button");
-    b.className = "app-icon";
-    b.style.animationDelay = `${i * 0.05}s`;
-    b.innerHTML = `<span class="glyph" style="background:${a.bg}">${a.glyph || '<svg viewBox="0 0 24 24" width="34" fill="#fff"><path d="M16.4 12.7c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.5 1.3-.1 1.8-.8 3.4-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.2-2.5.7-1 1.3-2.1 1.5-2.2-.1 0-2.9-1.1-3-4.7zM14 4.6c.7-.9 1.2-2.1 1.1-3.3-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"/></svg>'}</span><span class="app-label">${a.name}</span>`;
-    b.addEventListener("click", () => openApp(a.id));
-    grid.appendChild(b);
-  });
-  const dock = $("#dock");
-  dock.innerHTML = "";
-  DOCK.forEach((d) => {
-    const el = document.createElement("div");
-    el.className = "dock-icon";
-    el.style.background = d.bg;
-    el.textContent = d.glyph;
-    el.addEventListener("click", () => openApp(d.id));
-    dock.appendChild(el);
-  });
+  const pages = $("#pages"), dots = $("#dots");
+  pages.innerHTML = ""; dots.innerHTML = "";
+  const apps = allApps();
+  const rowH = 60 + 7 + 18 + 26;
+  const avail = pages.clientHeight || 600;
+  const rows = Math.max(2, Math.min(5, Math.floor((avail + 26) / rowH)));
+  const per = rows * 4;
+  const pageCount = Math.max(1, Math.ceil(apps.length / per));
+  for (let p = 0; p < pageCount; p++) {
+    const page = document.createElement("div");
+    page.className = "page apps-grid";
+    apps.slice(p * per, (p + 1) * per).forEach((a, i) => {
+      const b = document.createElement("button");
+      b.className = "app-icon";
+      b.style.animationDelay = `${i * 0.05}s`;
+      b.innerHTML = `<span class="glyph" style="background:${a.bg}">${a.glyph || '<svg viewBox="0 0 24 24" width="34" fill="#fff"><path d="M16.4 12.7c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.3 1-4.2 2.6-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.5 1.3-.1 1.8-.8 3.4-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.2-2.5.7-1 1.3-2.1 1.5-2.2-.1 0-2.9-1.1-3-4.7zM14 4.6c.7-.9 1.2-2.1 1.1-3.3-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3-1.5z"/></svg>'}</span><span class="app-label">${a.name}</span>`;
+      b.addEventListener("click", () => openApp(a.id));
+      page.appendChild(b);
+    });
+    pages.appendChild(page);
+    const dot = document.createElement("span");
+    dot.className = "dot" + (p === 0 ? " active" : "");
+    dot.addEventListener("click", () => pages.scrollTo({ left: p * pages.clientWidth, behavior: "smooth" }));
+    dots.appendChild(dot);
+  }
+  dots.style.display = pageCount > 1 ? "flex" : "none";
+  pages.scrollLeft = 0;
 }
-renderHome();
+
+$("#pages").addEventListener("scroll", () => {
+  const pages = $("#pages");
+  if (!pages.clientWidth) return;
+  const idx = Math.round(pages.scrollLeft / pages.clientWidth);
+  document.querySelectorAll("#dots .dot").forEach((d, i) => d.classList.toggle("active", i === idx));
+});
+
+let swipe = null, suppressClick = false;
+window.addEventListener("click", (e) => {
+  if (suppressClick) { e.stopPropagation(); suppressClick = false; }
+}, true);
+const pgs = $("#pages");
+pgs.addEventListener("pointerdown", (e) => {
+  if (e.pointerType === "touch") return;
+  swipe = { x: e.clientX, sl: pgs.scrollLeft, moved: 0 };
+});
+window.addEventListener("pointermove", (e) => {
+  if (!swipe) return;
+  swipe.moved = Math.abs(e.clientX - swipe.x);
+  pgs.scrollLeft = swipe.sl - (e.clientX - swipe.x);
+});
+window.addEventListener("pointerup", () => {
+  if (!swipe) return;
+  if (swipe.moved > 30) {
+    suppressClick = true;
+    const target = Math.round(pgs.scrollLeft / pgs.clientWidth) * pgs.clientWidth;
+    pgs.scrollTo({ left: target, behavior: "smooth" });
+  }
+  swipe = null;
+});
 
 /* ---------- Otwieranie aplikacji ---------- */
 const RENDERERS = {};
@@ -844,3 +883,107 @@ RENDERERS.pomodoro = (el) => {
   el.querySelector("#pm-reset").addEventListener("click", () => { stop(); setMode(mode); });
   upd();
 };
+
+/* ================= YouTube ================= */
+RENDERERS.youtube = (el) => {
+  const POPULAR = [
+    { id: "dQw4w9WgXcQ", t: "Rick Astley — Never Gonna Give You Up" },
+    { id: "9bZkp7q19f0", t: "PSY — Gangnam Style" },
+    { id: "kJQP7kiw5Fk", t: "Luis Fonsi — Despacito" },
+    { id: "ZbZSe6N_BXs", t: "Happy — Pharrell Williams" },
+  ];
+  el.innerHTML = `<div class="chat-bar" style="padding-top:0"><input type="text" id="yt-in" placeholder="Wklej link lub ID filmu YT…"><button class="btn-primary" id="yt-play" style="width:auto;padding:10px 16px">▶</button></div><div id="yt-frame" style="margin-top:14px"></div><div id="yt-list" style="margin-top:14px"></div>`;
+  const frame = el.querySelector("#yt-frame");
+  const play = (q) => {
+    q = (q || "").trim();
+    if (!q) return;
+    let id = q;
+    const m = q.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
+    if (m) id = m[1];
+    else if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return;
+    frame.innerHTML = `<div style="border-radius:16px;overflow:hidden;aspect-ratio:16/9;background:#000"><iframe width="100%" height="100%" src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" style="border:0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen title="YouTube"></iframe></div>`;
+  };
+  el.querySelector("#yt-play").addEventListener("click", () => play(el.querySelector("#yt-in").value));
+  el.querySelector("#yt-in").addEventListener("keydown", (e) => { if (e.key === "Enter") play(el.querySelector("#yt-in").value); });
+  const list = el.querySelector("#yt-list");
+  POPULAR.forEach((v) => {
+    const d = document.createElement("div");
+    d.className = "note-item";
+    d.innerHTML = `<span style="flex:1;font-size:14px">▶ ${v.t}</span>`;
+    d.addEventListener("click", () => { play(v.id); });
+    list.appendChild(d);
+  });
+};
+
+/* ================= ChatGPT (własny klucz API) ================= */
+RENDERERS.gpt = (el) => ({
+  init: function () {
+    const key = localStorage.getItem("p-ios-aikey");
+    if (key) this.chat(key);
+    else this.keySetup();
+  },
+  keySetup: function () {
+    el.innerHTML = `<div style="text-align:center;padding-top:24px"><span style="font-size:64px">🤖</span><h3 style="margin:12px 0 6px">ChatGPT</h3><p style="opacity:.65;font-size:14px;line-height:1.6;margin-bottom:18px">Aby rozmawiać, podaj własny klucz API OpenAI.<br>Pobierz go na <b>platform.openai.com/api-keys</b>.<br><small style="opacity:.7">Klucz zapisuje się tylko w Twojej przeglądarce (localStorage) i nie opuszcza tego urządzenia.</small></p>
+      <input type="password" class="note-input" id="gpt-key" placeholder="sk-…" autocomplete="off">
+      <input type="text" class="note-input" id="gpt-model" placeholder="Model (np. gpt-4o-mini)" value="gpt-4o-mini">
+      <button class="btn-primary" id="gpt-save">💾 Zapisz i zacznij czat</button></div>`;
+    el.querySelector("#gpt-save").addEventListener("click", () => {
+      const k = el.querySelector("#gpt-key").value.trim();
+      if (k.length < 10) return;
+      localStorage.setItem("p-ios-aikey", k);
+      localStorage.setItem("p-ios-aimodel", el.querySelector("#gpt-model").value.trim() || "gpt-4o-mini");
+      this.chat(k);
+    });
+  },
+  chat: function (key) {
+    const model = localStorage.getItem("p-ios-aimodel") || "gpt-4o-mini";
+    el.innerHTML = `
+      <div id="chat-log" class="chat-log" style="flex:1;min-height:0;overflow-y:auto"></div>
+      <div class="chat-bar"><input type="text" id="chat-in" placeholder="Napisz wiadomość…"><button class="btn-primary" id="chat-send" style="width:auto;padding:10px 16px">➤</button></div>
+      <div style="text-align:center;padding-top:8px"><small style="opacity:.4;cursor:pointer" id="gpt-reset">model: ${model} · zmień klucz</small></div>`;
+    const log = el.querySelector("#chat-log");
+    const add = (t, me, isHtml) => {
+      const d = document.createElement("div");
+      d.className = "chat-msg " + (me ? "me" : "bot");
+      if (isHtml) d.innerHTML = t; else d.textContent = t;
+      log.appendChild(d);
+      log.scrollTop = log.scrollHeight;
+      return d;
+    };
+    add("Cześć! 👋 Jak mogę Ci dzisiaj pomóc?", false);
+    const history = [{ role: "system", content: "Odpowiadaj krótko i po polsku, jeśli użytkownik pisze po polsku." }];
+    const send = async () => {
+      const inp = el.querySelector("#chat-in");
+      const v = inp.value.trim();
+      if (!v) return;
+      add(v, true); inp.value = "";
+      history.push({ role: "user", content: v });
+      if (history.length > 12) history.splice(1, history.length - 12);
+      const wait = add("…", false);
+      try {
+        const r = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + key },
+          body: JSON.stringify({ model, messages: history, max_tokens: 700 }),
+        });
+        const data = await r.json();
+        if (data.error) {
+          wait.innerHTML = data.error.code === "invalid_api_key"
+            ? "⚠️ Nieprawidłowy klucz API. <a href='#' id='gpt-change' style='color:#0a84ff'>Podaj inny klucz</a>."
+            : "⚠️ Błąd API: " + data.error.message;
+          const ch = wait.querySelector("#gpt-change");
+          if (ch) ch.addEventListener("click", (e) => { e.preventDefault(); localStorage.removeItem("p-ios-aikey"); this.keySetup(); });
+        } else {
+          const txt = data.choices?.[0]?.message?.content || "…";
+          add(txt.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>"), false, true);
+          history.push({ role: "assistant", content: txt });
+        }
+      } catch (e) {
+        wait.textContent = "⚠️ Brak połączenia z API (sieć / CORS / blokada rozszerzenia).";
+      }
+    };
+    el.querySelector("#chat-send").addEventListener("click", send);
+    el.querySelector("#chat-in").addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+    el.querySelector("#gpt-reset").addEventListener("click", () => { localStorage.removeItem("p-ios-aikey"); this.keySetup(); });
+  },
+}).init();
