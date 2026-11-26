@@ -374,6 +374,7 @@ function syncToggles() {
   document.querySelectorAll(".cc-wide").forEach((b) => {
     if (b.dataset.k === "flash") b.classList.toggle("on", !!state.flash);
   });
+  if (state.walking) renderHouse(); /* Wi-Fi on/off zmienia zasięg też w trybie spaceru */
 }
 function toggleCC(e) {
   if (!state.unlocked) return;
@@ -406,7 +407,91 @@ syncToggles();
 /* Klawiatura: Enter = unlock, Escape = lock/close */
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !state.unlocked) unlock();
-  if (e.key === "Escape") { if ($("#app-view").classList.contains("open")) closeApp(); else if (state.unlocked) lock(); }
+  if (e.key === "Escape") { if (state.walking) exitHouse(); else if ($("#app-view").classList.contains("open")) closeApp(); else if (state.unlocked) lock(); }
+});
+
+
+/* ================= Spacer po domu (telefon w ręce) ================= */
+const HOUSE_ROOMS = [
+  { id: "salon",     name: "Salon",     glyph: "\u{1F6CB}\uFE0F", sig: 5, net: "5G",   note: "Router Wi-Fi stoi tutaj — pełny zasięg \u{1F4F6}" },
+  { id: "kuchnia",   name: "Kuchnia",   glyph: "\u{1F373}", sig: 4, net: "5G",   note: "Kawa i prawie pełny zasięg — tylko jedna ściana." },
+  { id: "sypialnia", name: "Sypialnia", glyph: "\u{1F6CF}\uFE0F", sig: 3, net: "4G",   note: "Sygnał słabnie za dwiema ścianami." },
+  { id: "lazienka",  name: "\u{141}azienka",  glyph: "\u{1F6C1}", sig: 2, net: "3G",   note: "Płytki tłumią sygnał… dokładnie tak, jak myślisz." },
+  { id: "balkon",    name: "Balkon",    glyph: "\u{1FAB4}", sig: 1, net: "3G",   note: "Jedna kreska i modlitwa." },
+  { id: "piwnica",   name: "Piwnica",   glyph: "\u{1F526}\uFE0F", sig: 0, net: "brak", note: "Zasięgu brak. Za to cisza — bezcenna." },
+];
+state.walking = false;
+state.room = "salon";
+
+function applySignal() {
+  const room = HOUSE_ROOMS.find((r) => r.id === state.room) || HOUSE_ROOMS[0];
+  let sig = room.sig, net = room.net;
+  if (!state.toggles.wifi && sig > 2) { sig = 2; net = "3G"; }
+  const sigEl = document.querySelector("#status-bar .sig");
+  if (sigEl && sigEl.nextElementSibling) {
+    sigEl.textContent = " " + "\u25CF".repeat(sig) + (sig < 5 ? "\u00B7".repeat(5 - sig) : "");
+    sigEl.nextElementSibling.textContent = net;
+  }
+  return { sig, net, room };
+}
+function renderHouse() {
+  const info = applySignal();
+  const bars = "\u25CF".repeat(info.sig) + (info.sig < 5 ? "\u00B7".repeat(5 - info.sig) : "");
+  const hv = document.querySelector("#house-view");
+  if (!hv) return;
+  hv.innerHTML = `
+    <div class="house-wrap">
+      <h1 class="house-title">\u{1F3E0} Twój dom</h1>
+      <p class="house-sub">Odszedłeś od telefonu — trzymasz go teraz w ręce.<br>Kliknij pomieszczenie, aby się w nim znaleźć.</p>
+      <div class="house-rooms">
+        ${HOUSE_ROOMS.map((r) => `
+          <button class="house-room ${r.id === state.room ? "here" : ""}" data-room="${r.id}">
+            <span class="hr-glyph">${r.glyph}</span>
+            <span class="hr-name">${r.name}${r.id === state.room ? " — tu jesteś" : ""}</span>
+            <span class="hr-note">${r.note}</span>
+          </button>`).join("")}
+      </div>
+      <div class="house-hand">
+        <div class="hh-label">\u{1F4F1} Telefon w twojej ręce</div>
+        <div class="hh-line">${document.querySelector("#sb-time").textContent} \u00B7 ${bars} \u00B7 ${info.net} \u00B7 ${info.room.name}</div>
+        <div class="hh-hint">\u{1F446} Kliknij telefon w rogu, aby wrócić do normalnego trybu</div>
+      </div>
+    </div>`;
+  hv.querySelectorAll(".house-room").forEach((b) =>
+    b.addEventListener("click", () => { state.room = b.dataset.room; renderHouse(); })
+  );
+}
+function enterHouse() {
+  if (!state.unlocked || state.walking) return;
+  closeApp();
+  state.walking = true;
+  state.room = "salon";
+  document.body.classList.add("walking");
+  document.querySelector("#house-view").classList.add("open");
+  renderHouse();
+}
+function exitHouse() {
+  if (!state.walking) return;
+  state.walking = false;
+  document.body.classList.remove("walking");
+  document.querySelector("#house-view").classList.remove("open");
+  const sigEl = document.querySelector("#status-bar .sig");
+  if (sigEl && sigEl.nextElementSibling) {
+    sigEl.textContent = " \u25CF\u25CF\u25CF\u25CF\u25CF";
+    sigEl.nextElementSibling.textContent = "5G";
+  }
+}
+document.querySelectorAll(".cc-wide[data-k=home]").forEach((b) =>
+  b.addEventListener("click", (e) => {
+    e.stopPropagation(); /* nie pozwalaj kliknieciu babelkowac do #phone (natychmiastowe exitHouse) */
+    document.querySelector("#control-center").classList.remove("open");
+    enterHouse();
+  })
+);
+document.querySelector("#phone").addEventListener("click", (e) => {
+  if (!state.walking) return;
+  if (e.target.closest("#control-center")) return;
+  exitHouse();
 });
 
 /* ================= App Store ================= */

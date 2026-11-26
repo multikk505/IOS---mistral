@@ -419,3 +419,55 @@ body.dark .timer-display { color: #fff; }
 body.dark .g2048-tile, .g2048-tile { color: var(--t-c, #333); }
 body.dark .sp-cell.open { background: rgba(255,255,255,.08); }
 body.dark .sp-cell { color: #fff; }
+
+/* ---------- Spacer po domu (telefon w ręce) ---------- */
+#house-view {
+  position: fixed; inset: 0; z-index: 40; display: none;
+  background:
+    radial-gradient(1200px 500px at 70% -10%, rgba(255,214,10,.10), transparent 60%),
+    linear-gradient(180deg, #3b2f2a 0%, #2a211d 55%, #1c1614 100%);
+  color: #fff; overflow-y: auto;
+}
+#house-view.open { display: block; }
+.house-wrap { max-width: 760px; margin: 0 auto; padding: 36px 22px 140px; }
+.house-title { font-size: 34px; margin: 0 0 6px; }
+.house-sub { opacity: .65; margin: 0 0 26px; line-height: 1.6; }
+.house-rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.house-room {
+  display: flex; flex-direction: column; gap: 6px; text-align: left;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px; padding: 16px 18px; cursor: pointer; color: #fff;
+  font: inherit; transition: transform .12s ease, background .12s ease;
+}
+.house-room:hover { transform: translateY(-2px); background: rgba(255,255,255,.12); }
+.house-room.here { background: rgba(255,214,10,.16); border-color: rgba(255,214,10,.55); }
+.hr-glyph { font-size: 30px; }
+.hr-name { font-weight: 600; font-size: 16px; }
+.hr-note { font-size: 12px; opacity: .6; line-height: 1.45; }
+.house-hand {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.15);
+  backdrop-filter: blur(10px); border-radius: 20px;
+  padding: 14px 22px; text-align: center; z-index: 45; max-width: 92vw;
+}
+.hh-label { font-size: 12px; opacity: .6; margin-bottom: 4px; }
+.hh-line { font-size: 17px; font-weight: 600; letter-spacing: .5px; }
+.hh-hint { font-size: 12px; opacity: .55; margin-top: 6px; }
+
+/* Telefon jako miniatura "w ręce" */
+body.walking #phone {
+  position: fixed; right: 22px; bottom: 22px; z-index: 60;
+  transform: scale(.5); transform-origin: bottom right;
+  cursor: pointer; box-shadow: 0 0 0 10px #1a1a1a, 0 0 0 12px #333, 0 24px 70px rgba(0,0,0,.85);
+  animation: hand-bob 2.6s ease-in-out infinite;
+}
+@keyframes hand-bob {
+  0%, 100% { margin-bottom: 0; }
+  50% { margin-bottom: 8px; }
+}
+@media (max-width: 480px) {
+  body.walking #phone { right: 10px; bottom: 10px; transform: scale(.42); }
+  .house-wrap { padding: 24px 14px 150px; }
+  .house-rooms { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .house-room { padding: 12px 14px; border-radius: 14px; }
+}

@@ -7,6 +7,7 @@ Klon interfejsu iOS zbudowany w czystym **HTML + CSS + JavaScript** — bez fram
 - 🔒 **Ekran blokady** — zegar, data, widget pogody, odblokowanie kliknięciem lub klawiszem Enter
 - 🏠 **Ekran główny** — siatka ikon aplikacji, dock, wybór tapety (zapisywana w localStorage)
 - 🎚 **Centrum sterowania** — Wi‑Fi, Bluetooth, tryb „Nie przeszkadzać", latarka, suwaki jasności i głośności (otwierane kliknięciem paska statusu)
+- 🚶 **Odejdź od telefonu** — tryb spaceru po domu: wychodzisz spod ekranu, telefon zamienia się w miniaturę „w ręce”, a ty przechodzisz między pomieszczeniami (salon, kuchnia, sypialnia, łazienka, balkon, piwnica). Zasięg na pasku statusu zmienia się wraz z pomieszczeniem (5G → 4G → 3G → brak), a wyłączenie Wi‑Fi dodatkowo osłabia sygnał. Powrót: kliknij mini‑telefon w rogu lub naciśnij Escape
 - 🧮 **Kalkulator** — pełne działanie (+, −, ×, ÷, %, ±)
 - 🎨 **Szkicownik** — rysowanie palcem/myszką (canvas, kolory, rozmiar pędzla)
 - ⏲️ **Minutnik** — odliczanie 1/3/5/10 min z dźwiękiem
