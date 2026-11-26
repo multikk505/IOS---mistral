@@ -483,3 +483,41 @@ body.phone-down #phone { display: none; }
 }
 .house-act:hover:not(:disabled) { transform: translateY(-1px); }
 .house-act:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ---------- Spacer 3D po domu (raycasting) ---------- */
+#house3d { position: fixed; inset: 0; z-index: 46; display: none; background: #000; overflow: hidden; }
+#house3d.open { display: block; }
+#h3d-canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; cursor: grab; }
+#h3d-canvas:active { cursor: grabbing; }
+#h3d-hud {
+  position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 47;
+  background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.15);
+  backdrop-filter: blur(10px); border-radius: 999px; padding: 8px 18px;
+  font-size: 14px; font-weight: 600; letter-spacing: .5px; color: #fff; white-space: nowrap;
+}
+#h3d-exit {
+  position: fixed; top: 14px; right: 14px; z-index: 47;
+  background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.2);
+  color: #fff; border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 13px;
+  cursor: pointer; backdrop-filter: blur(10px);
+}
+#h3d-exit:hover { background: rgba(255,255,255,.15); }
+.h3d-pad {
+  position: fixed; bottom: 20px; left: 46%; transform: translateX(-50%); z-index: 47;
+  display: flex; gap: 10px;
+}
+.h3d-pad button {
+  width: 56px; height: 56px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25);
+  background: rgba(0,0,0,.5); color: #fff; font-size: 22px; cursor: pointer;
+  backdrop-filter: blur(8px); touch-action: none; user-select: none;
+}
+.h3d-pad button:active { background: rgba(255,214,10,.35); }
+.h3d-hint {
+  position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); z-index: 47;
+  font-size: 12px; color: rgba(255,255,255,.55); text-align: center; max-width: 80vw;
+}
+@media (max-width: 480px) {
+  .h3d-pad { left: 38%; }
+  .h3d-hint { display: none; }
+  #h3d-hud { font-size: 12px; padding: 6px 12px; }
+}

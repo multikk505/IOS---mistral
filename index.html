@@ -66,6 +66,20 @@
 
 <!-- Tryb spaceru po domu (telefon w ręce) -->
 <div id="house-view"></div>
+
+<!-- Spacer 3D po domu (raycasting, telefon w ręce) -->
+<div id="house3d">
+  <canvas id="h3d-canvas" width="360" height="200"></canvas>
+  <div id="h3d-hud">📍 Salon</div>
+  <button id="h3d-exit">↩︎ Widok domu</button>
+  <div class="h3d-pad">
+    <button data-k="ArrowLeft" aria-label="obrót w lewo">⟲</button>
+    <button data-k="ArrowUp" aria-label="do przodu">▲</button>
+    <button data-k="ArrowDown" aria-label="do tyłu">▼</button>
+    <button data-k="ArrowRight" aria-label="obrót w prawo">⟳</button>
+  </div>
+  <div class="h3d-hint">W/S — chodzenie · A/D — kroki w bok · ←/→ — obrót · przeciągnij myszą — rozglądanie</div>
+</div>
 <script src="app.js"></script>
 <script src="store-apps.js"></script>
 </body>

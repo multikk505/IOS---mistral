@@ -407,7 +407,7 @@ syncToggles();
 /* Klawiatura: Enter = unlock, Escape = lock/close */
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !state.unlocked) unlock();
-  if (e.key === "Escape") { if (state.walking) exitHouse(); else if ($("#app-view").classList.contains("open")) closeApp(); else if (state.unlocked) lock(); }
+  if (e.key === "Escape") { if (state.h3d) exitHouse3d(); else if (state.walking) exitHouse(); else if ($("#app-view").classList.contains("open")) closeApp(); else if (state.unlocked) lock(); }
 });
 
 
@@ -460,7 +460,8 @@ function renderHouse() {
           <div class="hh-label">\u{1F4F1} Telefon w twojej r\u0119ce</div>
           <div class="hh-line">${document.querySelector("#sb-time").textContent} \u00B7 ${bars} \u00B7 ${info.net} \u00B7 ${info.room.name}</div>
           <div class="hh-hint">\u{1F446} Kliknij telefon w rogu, aby wrócić do normalnego trybu</div>
-          <button class="house-act" data-act="putdown">\u2B07\uFE0F Od\u0142o\u017c telefon tutaj</button>`;
+          <button class="house-act" data-act="putdown">\u2B07\uFE0F Od\u0142o\u017c telefon tutaj</button>
+          <button class="house-act alt" data-act="3d">\u{1F310} Chodzenie w 3D</button>`;
   hv.innerHTML = `
     <div class="house-wrap">
       <h1 class="house-title">\u{1F3E0} Twój dom</h1>
@@ -476,7 +477,11 @@ function renderHouse() {
     b.addEventListener("click", () => { state.room = b.dataset.room; renderHouse(); })
   );
   hv.querySelectorAll(".house-act").forEach((b) =>
-    b.addEventListener("click", () => { b.dataset.act === "putdown" ? putDownPhone() : pickUpPhone(); })
+    b.addEventListener("click", () => {
+      if (b.dataset.act === "putdown") putDownPhone();
+      else if (b.dataset.act === "pickup") pickUpPhone();
+      else if (b.dataset.act === "3d") enterHouse3d();
+    })
   );
 }
 function putDownPhone() {
@@ -528,6 +533,175 @@ document.querySelector("#phone").addEventListener("click", (e) => {
   if (e.target.closest("#control-center")) return;
   exitHouse();
 });
+
+
+/* ================= Spacer 3D po domu (raycasting) ================= */
+const H3D = {
+  /* # = sciana, kropka = korytarz, litery = podlogi pokoi */
+  map: [
+    "##################",
+    "#SSSSSS#KKKKKK#YY#",
+    "#SSSSSS#KKKKKK#YY#",
+    "#SSSSSS#KKKKKK#YY#",
+    "#SSSSSS#KKKKKK#YY#",
+    "###.#####.####.###",
+    "#................#",
+    "###.####.####.####",
+    "#LLLLLL#BBBB#PPPP#",
+    "#LLLLLL#BBBB#PPPP#",
+    "#LLLLLL#BBBB#PPPP#",
+    "#LLLLLL#BBBB#PPPP#",
+    "##################",
+  ],
+  zones: [
+    { id: "salon",     x0: 1,  y0: 1, x1: 6,  y1: 4 },
+    { id: "kuchnia",   x0: 8,  y0: 1, x1: 13, y1: 4 },
+    { id: "sypialnia", x0: 15, y0: 1, x1: 16, y1: 4 },
+    { id: "lazienka",  x0: 1,  y0: 8, x1: 6,  y1: 11 },
+    { id: "balkon",    x0: 8,  y0: 8, x1: 11, y1: 11 },
+    { id: "piwnica",   x0: 13, y0: 8, x1: 16, y1: 11 },
+  ],
+  px: 3.5, py: 2.5, ang: Math.PI / 2,
+  keys: {}, raf: 0, last: 0, dragging: false, lx: 0,
+};
+window.H3D = H3D; /* wygoda dla testow */
+
+function h3dWall(x, y) {
+  const row = H3D.map[Math.floor(y)];
+  const ch = row ? row[Math.floor(x)] : undefined;
+  return ch === undefined || ch === "#";
+}
+function h3dRoomAt(x, y) {
+  const cx = Math.floor(x), cy = Math.floor(y);
+  const z = H3D.zones.find((z) => cx >= z.x0 && cx <= z.x1 && cy >= z.y0 && cy <= z.y1);
+  return z ? HOUSE_ROOMS.find((r) => r.id === z.id) || null : null;
+}
+function h3dStep(dt) {
+  const k = H3D.keys;
+  const rot = 2.6 * dt;
+  if (k["ArrowLeft"]) H3D.ang -= rot;
+  if (k["ArrowRight"]) H3D.ang += rot;
+  const fwd = (k["w"] || k["W"] || k["ArrowUp"] ? 1 : 0) - (k["s"] || k["S"] || k["ArrowDown"] ? 1 : 0);
+  const str = (k["d"] || k["D"] ? 1 : 0) - (k["a"] || k["A"] ? 1 : 0);
+  if (fwd || str) {
+    const sp = 2.4 * dt;
+    const dx = Math.cos(H3D.ang), dy = Math.sin(H3D.ang);
+    const vx = (dx * fwd - dy * str) * sp, vy = (dy * fwd + dx * str) * sp;
+    const R = 0.2;
+    const sx = Math.sign(vx) * R, sy = Math.sign(vy) * R;
+    const nx = H3D.px + vx;
+    if (!h3dWall(nx + sx, H3D.py) && !h3dWall(nx + sx, H3D.py + R * .9) && !h3dWall(nx + sx, H3D.py - R * .9)) H3D.px = nx;
+    const ny = H3D.py + vy;
+    if (!h3dWall(H3D.px, ny + sy) && !h3dWall(H3D.px + R * .9, ny + sy) && !h3dWall(H3D.px - R * .9, ny + sy)) H3D.py = ny;
+  }
+}
+function h3dDraw() {
+  const cv = document.querySelector("#h3d-canvas");
+  const ctx = cv && cv.getContext && cv.getContext("2d");
+  if (!ctx) return; /* jsdom / brak canvas */
+  const W = cv.width, H = cv.height;
+  ctx.fillStyle = "#221b17"; ctx.fillRect(0, 0, W, H / 2);   /* sufit */
+  ctx.fillStyle = "#382c22"; ctx.fillRect(0, H / 2, W, H / 2); /* podloga */
+  const dirX = Math.cos(H3D.ang), dirY = Math.sin(H3D.ang);
+  const planeX = -dirY * 0.72, planeY = dirX * 0.72;
+  for (let x = 0; x < W; x++) {
+    const camX = 2 * x / W - 1;
+    const rdx = dirX + planeX * camX, rdy = dirY + planeY * camX;
+    let mapX = Math.floor(H3D.px), mapY = Math.floor(H3D.py);
+    const ddx = Math.abs(1 / (rdx || 1e-9)), ddy = Math.abs(1 / (rdy || 1e-9));
+    let stepX, stepY, sdx, sdy;
+    if (rdx < 0) { stepX = -1; sdx = (H3D.px - mapX) * ddx; } else { stepX = 1; sdx = (mapX + 1 - H3D.px) * ddx; }
+    if (rdy < 0) { stepY = -1; sdy = (H3D.py - mapY) * ddy; } else { stepY = 1; sdy = (mapY + 1 - H3D.py) * ddy; }
+    let side = 0, hit = false, guard = 0;
+    while (!hit && guard++ < 64) {
+      if (sdx < sdy) { sdx += ddx; mapX += stepX; side = 0; }
+      else { sdy += ddy; mapY += stepY; side = 1; }
+      const row = H3D.map[mapY];
+      if (!row || row[mapX] === undefined || row[mapX] === "#") hit = true;
+    }
+    const perp = Math.max(0.02, side === 0 ? sdx - ddx : sdy - ddy);
+    const lh = Math.min(H * 3, H / perp);
+    const y0 = (H - lh) / 2;
+    let sh = Math.max(0.12, 1 - perp / 9);
+    if (side === 1) sh *= 0.72;
+    ctx.fillStyle = `rgb(${Math.round(186 * sh)},${Math.round(160 * sh)},${Math.round(128 * sh)})`;
+    ctx.fillRect(x, y0, 1, lh);
+  }
+  /* mini-mapa */
+  const FLOORC = { S: "#e0b64a", K: "#7ac0ff", Y: "#c39cff", L: "#6fe3b0", B: "#ffa94d", P: "#9a9a9a", ".": "rgba(255,255,255,.10)" };
+  const ts = 4, mx = 8, my = 8;
+  H3D.map.forEach((row, yy) => {
+    for (let xx = 0; xx < row.length; xx++) {
+      const c = row[xx];
+      ctx.fillStyle = c === "#" ? "rgba(255,255,255,.38)" : (FLOORC[c] || "rgba(255,255,255,.10)");
+      ctx.fillRect(mx + xx * ts, my + yy * ts, ts - .5, ts - .5);
+    }
+  });
+  ctx.fillStyle = "#ffd60a";
+  ctx.fillRect(mx + H3D.px * ts - 1.5, my + H3D.py * ts - 1.5, 3, 3);
+  ctx.strokeStyle = "#ffd60a";
+  ctx.beginPath();
+  ctx.moveTo(mx + H3D.px * ts, my + H3D.py * ts);
+  ctx.lineTo(mx + (H3D.px + Math.cos(H3D.ang) * 1.7) * ts, my + (H3D.py + Math.sin(H3D.ang) * 1.7) * ts);
+  ctx.stroke();
+}
+function h3dLoop(ts) {
+  if (!state.h3d) return;
+  if (!H3D.last) H3D.last = ts;
+  const dt = Math.min(0.05, (ts - H3D.last) / 1000);
+  H3D.last = ts;
+  h3dStep(dt);
+  const rm = h3dRoomAt(H3D.px, H3D.py);
+  if (rm && rm.id !== state.room) state.room = rm.id;
+  const info = applySignal();
+  const bars = "\u25CF".repeat(info.sig) + (info.sig < 5 ? "\u00B7".repeat(5 - info.sig) : "");
+  const roomName = (HOUSE_ROOMS.find((r) => r.id === state.room) || HOUSE_ROOMS[0]).name;
+  const hud = document.querySelector("#h3d-hud");
+  if (hud) hud.textContent = `\u{1F4CD} ${roomName} \u00B7 ${bars} ${info.net}`;
+  h3dDraw();
+  H3D.raf = requestAnimationFrame(h3dLoop);
+}
+function enterHouse3d() {
+  if (!state.walking || state.phoneDown || state.h3d) return;
+  state.h3d = true;
+  H3D.px = 3.5; H3D.py = 2.5; H3D.ang = Math.PI / 2;
+  H3D.keys = {}; H3D.last = 0;
+  document.querySelector("#house3d").classList.add("open");
+  H3D.raf = requestAnimationFrame(h3dLoop);
+}
+function exitHouse3d() {
+  if (!state.h3d) return;
+  state.h3d = false;
+  H3D.keys = {};
+  document.querySelector("#house3d").classList.remove("open");
+  cancelAnimationFrame(H3D.raf);
+  renderHouse();
+}
+document.addEventListener("keydown", (e) => {
+  if (!state.h3d) return;
+  H3D.keys[e.key] = true;
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) e.preventDefault();
+});
+document.addEventListener("keyup", (e) => { if (state.h3d) H3D.keys[e.key] = false; });
+window.addEventListener("blur", () => { H3D.keys = {}; });
+document.querySelector("#h3d-exit").addEventListener("click", exitHouse3d);
+(() => {
+  const cv = document.querySelector("#h3d-canvas");
+  cv.addEventListener("pointerdown", (e) => { H3D.dragging = true; H3D.lx = e.clientX; });
+  window.addEventListener("pointermove", (e) => {
+    if (!state.h3d || !H3D.dragging) return;
+    H3D.ang += (e.clientX - H3D.lx) * 0.005;
+    H3D.lx = e.clientX;
+  });
+  window.addEventListener("pointerup", () => { H3D.dragging = false; });
+  document.querySelectorAll(".h3d-pad button").forEach((b) => {
+    const k = b.dataset.k;
+    b.addEventListener("pointerdown", (e) => { e.preventDefault(); H3D.keys[k] = true; });
+    ["pointerup", "pointerleave", "pointercancel"].forEach((ev) =>
+      b.addEventListener(ev, () => { H3D.keys[k] = false; })
+    );
+  });
+})();
 
 /* ================= App Store ================= */
 RENDERERS.appstore = (el) => {
