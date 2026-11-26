@@ -422,6 +422,8 @@ const HOUSE_ROOMS = [
 ];
 state.walking = false;
 state.room = "salon";
+state.phoneDown = false;
+state.phoneRoom = null;
 
 function applySignal() {
   const room = HOUSE_ROOMS.find((r) => r.id === state.room) || HOUSE_ROOMS[0];
@@ -439,27 +441,57 @@ function renderHouse() {
   const bars = "\u25CF".repeat(info.sig) + (info.sig < 5 ? "\u00B7".repeat(5 - info.sig) : "");
   const hv = document.querySelector("#house-view");
   if (!hv) return;
+  const down = state.phoneDown;
+  const phoneRoom = down ? (HOUSE_ROOMS.find((r) => r.id === state.phoneRoom) || {}) : null;
+  const atPhone = down && state.room === state.phoneRoom;
+  const roomsHtml = HOUSE_ROOMS.map((r) => `
+          <button class="house-room ${r.id === state.room ? "here" : ""} ${down && r.id === state.phoneRoom ? "has-phone" : ""}" data-room="${r.id}">
+            <span class="hr-glyph">${r.glyph}</span>
+            <span class="hr-name">${r.name}${r.id === state.room ? " \u2014 tu jeste\u015b" : ""}${down && r.id === state.phoneRoom ? " \u{1F4F1}" : ""}</span>
+            <span class="hr-note">${down && r.id === state.phoneRoom ? "\u{1F4F1} Twój telefon leży tutaj." : r.note}</span>
+          </button>`).join("");
+  const handHtml = down ? `
+          <div class="hh-label">\u{1F64C} Ręce wolne</div>
+          <div class="hh-line">\u{1F4F1} Telefon leży: ${phoneRoom.name}</div>
+          <div class="hh-hint">${atPhone
+            ? "Jeste\u015b przy nim \u2014 mo\u017cesz go podnie\u015b\u0107 \u{1F447}"
+            : "\u{1F514} Czujesz s\u0142abe wibracje z odleg\u0142ego pokoju\u2026"}</div>
+          <button class="house-act" data-act="pickup" ${atPhone ? "" : "disabled"}>\u{1F4F2} Podnie\u015b telefon</button>` : `
+          <div class="hh-label">\u{1F4F1} Telefon w twojej r\u0119ce</div>
+          <div class="hh-line">${document.querySelector("#sb-time").textContent} \u00B7 ${bars} \u00B7 ${info.net} \u00B7 ${info.room.name}</div>
+          <div class="hh-hint">\u{1F446} Kliknij telefon w rogu, aby wrócić do normalnego trybu</div>
+          <button class="house-act" data-act="putdown">\u2B07\uFE0F Od\u0142o\u017c telefon tutaj</button>`;
   hv.innerHTML = `
     <div class="house-wrap">
       <h1 class="house-title">\u{1F3E0} Twój dom</h1>
-      <p class="house-sub">Odszedłeś od telefonu — trzymasz go teraz w ręce.<br>Kliknij pomieszczenie, aby się w nim znaleźć.</p>
-      <div class="house-rooms">
-        ${HOUSE_ROOMS.map((r) => `
-          <button class="house-room ${r.id === state.room ? "here" : ""}" data-room="${r.id}">
-            <span class="hr-glyph">${r.glyph}</span>
-            <span class="hr-name">${r.name}${r.id === state.room ? " — tu jesteś" : ""}</span>
-            <span class="hr-note">${r.note}</span>
-          </button>`).join("")}
+      <p class="house-sub">${down
+        ? "Ręce masz wolne \u2014 telefon leży gdzie\u015b w domu.<br>Wejd\u017a do pokoju, w którym go zostawi\u0142e\u015b, aby go podnie\u015b\u0107."
+        : "Odszed\u0142e\u015b od telefonu \u2014 trzymasz go teraz w r\u0119ce.<br>Kliknij pomieszczenie, aby si\u0119 w nim znale\u017a\u0107. Mo\u017cesz go te\u017c od\u0142o\u017cy\u0107."}</p>
+      <div class="house-rooms">${roomsHtml}
       </div>
-      <div class="house-hand">
-        <div class="hh-label">\u{1F4F1} Telefon w twojej ręce</div>
-        <div class="hh-line">${document.querySelector("#sb-time").textContent} \u00B7 ${bars} \u00B7 ${info.net} \u00B7 ${info.room.name}</div>
-        <div class="hh-hint">\u{1F446} Kliknij telefon w rogu, aby wrócić do normalnego trybu</div>
+      <div class="house-hand">${handHtml}
       </div>
     </div>`;
   hv.querySelectorAll(".house-room").forEach((b) =>
     b.addEventListener("click", () => { state.room = b.dataset.room; renderHouse(); })
   );
+  hv.querySelectorAll(".house-act").forEach((b) =>
+    b.addEventListener("click", () => { b.dataset.act === "putdown" ? putDownPhone() : pickUpPhone(); })
+  );
+}
+function putDownPhone() {
+  if (!state.walking || state.phoneDown) return;
+  state.phoneDown = true;
+  state.phoneRoom = state.room;
+  document.body.classList.add("phone-down");
+  renderHouse();
+}
+function pickUpPhone() {
+  if (!state.walking || !state.phoneDown || state.room !== state.phoneRoom) return;
+  state.phoneDown = false;
+  state.phoneRoom = null;
+  document.body.classList.remove("phone-down");
+  renderHouse();
 }
 function enterHouse() {
   if (!state.unlocked || state.walking) return;
@@ -473,7 +505,10 @@ function enterHouse() {
 function exitHouse() {
   if (!state.walking) return;
   state.walking = false;
+  state.phoneDown = false;
+  state.phoneRoom = null;
   document.body.classList.remove("walking");
+  document.body.classList.remove("phone-down");
   document.querySelector("#house-view").classList.remove("open");
   const sigEl = document.querySelector("#status-bar .sig");
   if (sigEl && sigEl.nextElementSibling) {

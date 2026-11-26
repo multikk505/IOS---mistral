@@ -471,3 +471,15 @@ body.walking #phone {
   .house-rooms { grid-template-columns: 1fr 1fr; gap: 10px; }
   .house-room { padding: 12px 14px; border-radius: 14px; }
 }
+
+/* Odłożony telefon */
+body.phone-down #phone { display: none; }
+.house-room.has-phone { border-style: dashed; border-color: rgba(48,209,88,.65); background: rgba(48,209,88,.10); }
+.house-act {
+  margin-top: 10px; padding: 9px 18px; border: none; border-radius: 14px; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 600; color: #1c1c1e;
+  background: linear-gradient(180deg, #ffd60a, #f5b000);
+  transition: transform .12s ease, opacity .12s ease;
+}
+.house-act:hover:not(:disabled) { transform: translateY(-1px); }
+.house-act:disabled { opacity: .35; cursor: not-allowed; }
