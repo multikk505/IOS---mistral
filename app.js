@@ -407,7 +407,7 @@ syncToggles();
 /* Klawiatura: Enter = unlock, Escape = lock/close */
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !state.unlocked) unlock();
-  if (e.key === "Escape") { if (state.h3d) exitHouse3d(); else if (state.walking) exitHouse(); else if ($("#app-view").classList.contains("open")) closeApp(); else if (state.unlocked) lock(); }
+  if (e.key === "Escape") { if (state.pcshop) closePcShop(); else if (state.h3d) exitHouse3d(); else if (state.walking) exitHouse(); else if ($("#app-view").classList.contains("open")) closeApp(); else if (state.unlocked) lock(); }
 });
 
 
@@ -418,7 +418,7 @@ const HOUSE_ROOMS = [
   { id: "sypialnia", name: "Sypialnia", glyph: "\u{1F6CF}\uFE0F", sig: 3, net: "4G",   note: "Sygnał słabnie za dwiema ścianami." },
   { id: "lazienka",  name: "\u{141}azienka",  glyph: "\u{1F6C1}", sig: 2, net: "3G",   note: "Płytki tłumią sygnał… dokładnie tak, jak myślisz." },
   { id: "balkon",    name: "Balkon",    glyph: "\u{1FAB4}", sig: 1, net: "3G",   note: "Jedna kreska i modlitwa." },
-  { id: "piwnica",   name: "Piwnica",   glyph: "\u{1F526}\uFE0F", sig: 0, net: "brak", note: "Zasięgu brak. Za to cisza — bezcenna." },
+  { id: "piwnica",   name: "Piwnica",   glyph: "\u{1F526}\uFE0F", sig: 0, net: "brak", note: "Zasięgu brak. W rogu biurko ze starym, zajechanym komputerem — ale działa!" },
 ];
 state.walking = false;
 state.room = "salon";
@@ -578,6 +578,7 @@ function h3dRoomAt(x, y) {
   return z ? HOUSE_ROOMS.find((r) => r.id === z.id) || null : null;
 }
 function h3dStep(dt) {
+  if (state.pcshop) return;
   const k = H3D.keys;
   const rot = 2.6 * dt;
   if (k["ArrowLeft"]) H3D.ang -= rot;
@@ -601,6 +602,7 @@ function h3dDraw() {
   const ctx = cv && cv.getContext && cv.getContext("2d");
   if (!ctx) return; /* jsdom / brak canvas */
   const W = cv.width, H = cv.height;
+  const zbuf = new Array(W);
   ctx.fillStyle = "#221b17"; ctx.fillRect(0, 0, W, H / 2);   /* sufit */
   ctx.fillStyle = "#382c22"; ctx.fillRect(0, H / 2, W, H / 2); /* podloga */
   const dirX = Math.cos(H3D.ang), dirY = Math.sin(H3D.ang);
@@ -621,6 +623,7 @@ function h3dDraw() {
       if (!row || row[mapX] === undefined || row[mapX] === "#") hit = true;
     }
     const perp = Math.max(0.02, side === 0 ? sdx - ddx : sdy - ddy);
+    zbuf[x] = perp;
     const lh = Math.min(H * 3, H / perp);
     const y0 = (H - lh) / 2;
     let sh = Math.max(0.12, 1 - perp / 9);
@@ -628,6 +631,32 @@ function h3dDraw() {
     ctx.fillStyle = `rgb(${Math.round(186 * sh)},${Math.round(160 * sh)},${Math.round(128 * sh)})`;
     ctx.fillRect(x, y0, 1, lh);
   }
+  /* meble (billboardy z testem glebi) */
+  const invDet = 1.0 / (planeX * dirY - dirX * planeY);
+  FURNITURE.forEach((f) => {
+    const spx = f.x - H3D.px, spy = f.y - H3D.py;
+    const trX = invDet * (dirY * spx - dirX * spy);
+    const trY = invDet * (-planeY * spx + planeX * spy);
+    if (trY <= 0.15 || trY > 12) return;
+    const wallH = H / trY;
+    const size = wallH * (f.s || 0.8);
+    const scr = Math.floor((W / 2) * (1 + trX / trY));
+    const bottom = (H + wallH) / 2;
+    const x0 = Math.max(0, Math.floor(scr - size / 2)), x1 = Math.min(W - 1, Math.ceil(scr + size / 2));
+    for (let x = x0; x <= x1; x++) {
+      if (trY < zbuf[x]) { /* cien pod meblem */
+        ctx.fillStyle = "rgba(0,0,0,.30)";
+        ctx.fillRect(x, bottom - size * 0.14, 1, size * 0.14);
+      }
+    }
+    if (scr >= 0 && scr < W && trY < zbuf[scr]) {
+      ctx.font = `${Math.max(8, Math.round(size * 0.92))}px serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText((f.pc && state.pc.old === false) ? "\u{1F4BB}" : f.e, scr, bottom - size * 0.06);
+    }
+  });
+
   /* mini-mapa */
   const FLOORC = { S: "#e0b64a", K: "#7ac0ff", Y: "#c39cff", L: "#6fe3b0", B: "#ffa94d", P: "#9a9a9a", ".": "rgba(255,255,255,.10)" };
   const ts = 4, mx = 8, my = 8;
@@ -640,6 +669,8 @@ function h3dDraw() {
   });
   ctx.fillStyle = "#ffd60a";
   ctx.fillRect(mx + H3D.px * ts - 1.5, my + H3D.py * ts - 1.5, 3, 3);
+  ctx.fillStyle = "#ff453a";
+  ctx.fillRect(mx + PC_SPOT.x * ts - 1.5, my + PC_SPOT.y * ts - 1.5, 3, 3);
   ctx.strokeStyle = "#ffd60a";
   ctx.beginPath();
   ctx.moveTo(mx + H3D.px * ts, my + H3D.py * ts);
@@ -675,6 +706,15 @@ function h3dLoop(ts) {
       pp.textContent = "\u2B07\uFE0F Od\u0142o\u017c";
     }
   }
+  const PC = FURNITURE.find((f) => f.pc);
+  H3D.pcNear = PC && Math.hypot(H3D.px - PC.x, H3D.py - PC.y) < 0.95;
+  const pcp = document.querySelector("#h3d-pcp"), pct = document.querySelector("#h3d-pctext");
+  if (pcp) {
+    pcp.style.display = H3D.pcNear && !state.pcshop ? "flex" : "none";
+    if (H3D.pcNear) pct.textContent = state.pc.old
+      ? "\u{1F5A5}\uFE0F Stary zajechany komputer (dzia\u0142a!)"
+      : `\u{1F4BB} Twój nowy komputer: ${state.pc.name}`;
+  }
   h3dDraw();
   H3D.raf = requestAnimationFrame(h3dLoop);
 }
@@ -698,7 +738,10 @@ document.addEventListener("keydown", (e) => {
   if (!state.h3d) return;
   H3D.keys[e.key] = true;
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) e.preventDefault();
-  if (e.key === "e" || e.key === "E") { state.phoneDown ? pickUpPhone() : putDownPhone(); }
+  if (e.key === "e" || e.key === "E") {
+    if (H3D.pcNear) togglePcShop();
+    else state.phoneDown ? pickUpPhone() : putDownPhone();
+  }
 });
 document.querySelector("#h3d-pp").addEventListener("click", () => { state.phoneDown ? pickUpPhone() : putDownPhone(); });
 document.addEventListener("keyup", (e) => { if (state.h3d) H3D.keys[e.key] = false; });
@@ -721,6 +764,94 @@ document.querySelector("#h3d-exit").addEventListener("click", exitHouse3d);
     );
   });
 })();
+
+
+/* ================= Meble + stary komputer + sklep ================= */
+const PC_SPOT = { x: 15.1, y: 10.3 };
+const FURNITURE = [
+  /* salon */
+  { x: 1.7,  y: 1.5,  e: "\u{1F6CB}\uFE0F", s: 0.95 },
+  { x: 4.9,  y: 1.3,  e: "\u{1F4FA}", s: 0.85 },
+  { x: 3.2,  y: 2.8,  e: "\u{1FA91}", s: 0.55 },
+  /* kuchnia */
+  { x: 12.5, y: 1.4,  e: "\u{1F9CA}", s: 0.9 },
+  { x: 9.6,  y: 2.2,  e: "\u{1F37D}\uFE0F", s: 0.6 },
+  { x: 8.4,  y: 1.4,  e: "\u2615", s: 0.45 },
+  /* sypialnia */
+  { x: 15.6, y: 1.5,  e: "\u{1F6CF}\uFE0F", s: 0.85 },
+  { x: 16.4, y: 3.3,  e: "\u{1F4A1}", s: 0.4 },
+  /* \u0142azienka */
+  { x: 1.7,  y: 8.7,  e: "\u{1F6C1}", s: 0.9 },
+  { x: 4.4,  y: 8.6,  e: "\u{1F6BD}", s: 0.8 },
+  { x: 6.2,  y: 10.6, e: "\u{1F9FA}", s: 0.55 },
+  /* balkon */
+  { x: 8.6,  y: 10.6, e: "\u{1FAB4}", s: 0.7 },
+  { x: 10.8, y: 8.6,  e: "\u{1FA91}", s: 0.5 },
+  /* piwnica */
+  { x: 13.5, y: 8.6,  e: "\u{1F4E6}", s: 0.8 },
+  { x: PC_SPOT.x, y: PC_SPOT.y, e: "\u{1F5A5}\uFE0F", s: 0.85, pc: true },
+];
+state.cash = parseInt(localStorage.getItem("p-ios-cash"), 10);
+if (isNaN(state.cash)) state.cash = 6000;
+state.pc = JSON.parse(localStorage.getItem("p-ios-pc") || "null") || { name: "Zajechany Ziwitrai XT", old: true };
+state.oldSold = localStorage.getItem("p-ios-oldsold") === "1";
+state.pcshop = false;
+
+const PCS = [
+  { id: "komp1", name: "Pinebral Air 13",       desc: "Lekki i cichy \u00B7 8 GB RAM \u00B7 idealny do nauki", price: 2999,  e: "\u{1F4BB}" },
+  { id: "komp2", name: "PixelWorx Studio 15",   desc: "16 GB RAM \u00B7 matryca 100% sRGB \u00B7 do zdj\u0119\u0107 i monta\u017cu", price: 5499,  e: "\u{1F4BB}" },
+  { id: "komp3", name: "GamerX Ryze 9000",      desc: "32 GB RAM \u00B7 RTX \u00B7 RGB wszystkiego \u00B7 g\u0142o\u015bny jak odrzutowiec", price: 8999,  e: "\u{1F5A5}\uFE0F" },
+  { id: "komp4", name: "Serwerownia Home Rack", desc: "64 GB RAM \u00B7 12\u00A0TB \u00B7 po co? po to.", price: 12999, e: "\u{1F5C4}\uFE0F" },
+];
+const savePc = () => {
+  localStorage.setItem("p-ios-cash", String(state.cash));
+  localStorage.setItem("p-ios-pc", JSON.stringify(state.pc));
+  localStorage.setItem("p-ios-oldsold", state.oldSold ? "1" : "0");
+};
+function renderPcShop() {
+  const el = document.querySelector("#pcshop");
+  if (!el) return;
+  el.innerHTML = `
+    <div class="pcshop-box">
+      <div class="pcshop-head">
+        <h2>\u{1F6D2} PC-Mistrz \u2014 sklep internetowy</h2>
+        <div class="pcshop-sub">Kurier dowiezie do piwnicy w 2 dni robocze</div>
+      </div>
+      <div class="pcshop-wallet">\u{1F4B0} Portfel: <b>${state.cash.toLocaleString("pl-PL")} z\u0142</b> \u00B7 Twój komputer: <b>${state.pc.name}</b></div>
+      <div class="pcshop-list">
+        ${PCS.map((p) => `
+          <div class="pcshop-item ${state.cash < p.price ? "cant" : ""}">
+            <span class="pc-e">${p.e}</span>
+            <div class="pc-info"><b>${p.name}</b><span>${p.desc}</span></div>
+            <div class="pc-buy">
+              <span class="pc-price">${p.price.toLocaleString("pl-PL")} z\u0142</span>
+              <button class="pc-btn" data-id="${p.id}" ${state.cash < p.price ? "disabled" : ""}>Kup</button>
+            </div>
+          </div>`).join("")}
+      </div>
+      <div class="pcshop-foot">
+        ${state.pc.old === false && !state.oldSold ? `<button class="pc-btn sell" id="pc-sell">\u{1F5A5}\uFE0F Sprzedaj starego (+250 z\u0142)</button>` : ""}
+        <button class="pc-btn close" id="pc-close">Zamknij (Esc)</button>
+      </div>
+    </div>`;
+  el.querySelectorAll(".pc-btn[data-id]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const p = PCS.find((x) => x.id === b.dataset.id);
+      if (!p || state.cash < p.price) return;
+      state.cash -= p.price;
+      state.pc = { name: p.name, old: false };
+      savePc();
+      renderPcShop();
+    })
+  );
+  const sell = el.querySelector("#pc-sell");
+  if (sell) sell.addEventListener("click", () => { state.cash += 250; state.oldSold = true; savePc(); renderPcShop(); });
+  el.querySelector("#pc-close").addEventListener("click", closePcShop);
+}
+function openPcShop() { if (!state.h3d) return; state.pcshop = true; document.querySelector("#pcshop").classList.add("open"); renderPcShop(); }
+function closePcShop() { state.pcshop = false; document.querySelector("#pcshop").classList.remove("open"); }
+function togglePcShop() { state.pcshop ? closePcShop() : openPcShop(); }
+document.querySelector("#h3d-pcbtn").addEventListener("click", togglePcShop);
 
 /* ================= App Store ================= */
 RENDERERS.appstore = (el) => {
