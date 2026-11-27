@@ -456,7 +456,8 @@ function renderHouse() {
           <div class="hh-hint">${atPhone
             ? "Jeste\u015b przy nim \u2014 mo\u017cesz go podnie\u015b\u0107 \u{1F447}"
             : "\u{1F514} Czujesz s\u0142abe wibracje z odleg\u0142ego pokoju\u2026"}</div>
-          <button class="house-act" data-act="pickup" ${atPhone ? "" : "disabled"}>\u{1F4F2} Podnie\u015b telefon</button>` : `
+          <button class="house-act" data-act="pickup" ${atPhone ? "" : "disabled"}>\u{1F4F2} Podnie\u015b telefon</button>
+          <button class="house-act alt" data-act="3d">\u{1F310} Chodzenie w 3D (bez telefonu)</button>` : `
           <div class="hh-label">\u{1F4F1} Telefon w twojej r\u0119ce</div>
           <div class="hh-line">${document.querySelector("#sb-time").textContent} \u00B7 ${bars} \u00B7 ${info.net} \u00B7 ${info.room.name}</div>
           <div class="hh-hint">\u{1F446} Kliknij telefon w rogu, aby wrócić do normalnego trybu</div>
@@ -656,13 +657,29 @@ function h3dLoop(ts) {
   const info = applySignal();
   const bars = "\u25CF".repeat(info.sig) + (info.sig < 5 ? "\u00B7".repeat(5 - info.sig) : "");
   const roomName = (HOUSE_ROOMS.find((r) => r.id === state.room) || HOUSE_ROOMS[0]).name;
+  const atPhone = state.phoneDown && state.room === state.phoneRoom;
   const hud = document.querySelector("#h3d-hud");
-  if (hud) hud.textContent = `\u{1F4CD} ${roomName} \u00B7 ${bars} ${info.net}`;
+  if (hud) hud.textContent = state.phoneDown
+    ? `\u{1F4CD} ${roomName} \u00B7 \u{1F4F5} bez telefonu`
+    : `\u{1F4CD} ${roomName} \u00B7 ${bars} ${info.net}`;
+  const ptext = document.querySelector("#h3d-ptext"), pp = document.querySelector("#h3d-pp");
+  if (ptext && pp) {
+    if (state.phoneDown) {
+      const pr = HOUSE_ROOMS.find((r) => r.id === state.phoneRoom);
+      ptext.textContent = `\u{1F4F5} telefon le\u017cy: ${pr ? pr.name : "?"}`;
+      pp.style.display = atPhone ? "" : "none";
+      pp.textContent = "\u{1F4F2} Podnie\u015b";
+    } else {
+      ptext.textContent = `\u{1F4F1} w r\u0119ce \u00B7 ${bars} ${info.net}`;
+      pp.style.display = "";
+      pp.textContent = "\u2B07\uFE0F Od\u0142o\u017c";
+    }
+  }
   h3dDraw();
   H3D.raf = requestAnimationFrame(h3dLoop);
 }
 function enterHouse3d() {
-  if (!state.walking || state.phoneDown || state.h3d) return;
+  if (!state.walking || state.h3d) return;
   state.h3d = true;
   H3D.px = 3.5; H3D.py = 2.5; H3D.ang = Math.PI / 2;
   H3D.keys = {}; H3D.last = 0;
@@ -681,7 +698,9 @@ document.addEventListener("keydown", (e) => {
   if (!state.h3d) return;
   H3D.keys[e.key] = true;
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) e.preventDefault();
+  if (e.key === "e" || e.key === "E") { state.phoneDown ? pickUpPhone() : putDownPhone(); }
 });
+document.querySelector("#h3d-pp").addEventListener("click", () => { state.phoneDown ? pickUpPhone() : putDownPhone(); });
 document.addEventListener("keyup", (e) => { if (state.h3d) H3D.keys[e.key] = false; });
 window.addEventListener("blur", () => { H3D.keys = {}; });
 document.querySelector("#h3d-exit").addEventListener("click", exitHouse3d);
